@@ -1,0 +1,43 @@
+html, body{
+    margin:0;
+    padding:0;
+}
+
+.header {
+    padding: 10px; 
+    text-align: center;
+    background: #b0537e;
+    color: white;
+    font-size: 30px;
+    float:top;
+}
+
+.sidenav {
+    height: 100%;
+    width: 160px;
+    float: left;
+    z-index: 1; /* stay at the top */
+    top: 0; /* stay at the top */
+    left: 0;
+    top: 100px;
+    background-color: #e184e3;
+    overflow-x: hidden; /* disable horizontal scroll */
+    padding-top: 20px;
+}
+
+.sidenav a {
+    padding: 6px 8px 7px 16px;
+    text-decoration: none;
+    font-size: 25px;
+    color: black;
+    display: block;
+}
+
+.sidenav a:hover{
+    color: white;
+}
+
+@media screen and (max-height: 450px){
+    .sidenav {padding-top: 15px;}
+    .sidenav a {font-size: 18px;}
+}
