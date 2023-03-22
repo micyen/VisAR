@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdn.plot.ly/plotly-2.18.2.min.js">
+        </script>
+        <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js">
+        </script> -->
+        <script src="https://d3js.org/d3.v7.min.js">
+        </script>
+    </head>
+    <body>
+        <div class="sidenav">
+            <a href="./dashboard.html">
+                <img src="imgs/Home_Icon.svg" alt="Home Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
+                <div style="text-align:center">
+                    Home
+                </div>
+            </a>
+            <a href="./bipartite.html">
+                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <div style="text-align:center">
+                    Graph
+                </div>
+            </a>
+            <a href="./treemap.html">
+                <img src="imgs/Treemap_Icon.svg" alt="Treemap Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <div style="text-align:center">
+                    Treemap
+                </div>
+            </a>
+            <a href="./barchart.html">
+                <img src="imgs/Barchart_Icon.svg" alt="Barchart Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <div style="text-align:center">
+                    Bar Chart
+                </div>
+            </a>
+            <a href="./about.html">
+                <img src="imgs/Info_Icon.svg" alt="About Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
+                <div style="text-align:center">
+                    About
+                </div>
+            </a>
+        </div>
+        <div class="centerdiv">
+            <div class="header">
+                <h1>
+                    VisAR
+                </h1>
+            </div>
+            <div class="body" id="charts">
+                <div class="parameters">
+                    <select name="drug" id="drug">
+                        <!-- options for each type of drug -->
+                    </select>
+                    <select name="ar" id="ar">
+                        <!-- options for each type of adverse reaction -->
+                    </select>
+                    <button type="button" id="newchart">Add Chart</button>
+                </div>
+                <!-- <svg class="main" id="svg1"></svg> -->
+            </div>
+        </div>
+    </body>
+</html>
+
+<!-- <script type="module" src="./barchart.js"></script> -->
+<!-- <script>
+    console.log("HELLO");
+</script> -->
+<script type="module">
+
+    const addChart = () => {
+        const titleText = 'Abdominal Pain for Acetaminophen by Manufacturer';
+        const xAxisLabelText = 'Count';
+        
+        d3.select("#charts")
+            .append("svg")
+            .attr("width",  "1000")
+            .attr("height", "800")
+            .attr("id", "svg1")
+
+        const svg = d3.select('#svg1');
+        // const svg = d3.select('svg');
+
+        // const width = parseInt(+svg.attr("width"), 10);
+        // const height = parseInt(+svg.attr("height"), 10);
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        console.log(width);
+        console.log(height);
+
+        const render = data => {
+            const yValue = d => d['GroupBy'];
+            const xValue = d => d['Count'];
+            const margin = { top: 50, right: 40, bottom: 77, left: 200 };
+            const innerWidth = width - margin.left - margin.right;
+            const innerHeight = height - margin.top - margin.bottom;
+
+            const xScale = d3.scaleLinear()
+                .domain([0, d3.max(data, xValue)])
+                .range([0, innerWidth]);
+
+            const yScale = d3.scaleBand()
+                .domain(data.map(yValue))
+                .range([0, innerHeight])
+                .padding(0.1);
+
+            // const xScale = d3.scaleBand()
+            //     .domain(data.map(xValue))
+            //     .range([0, innerWidth])
+            //     .padding(0.1);
+
+            // const yScale = d3.scaleLinear()
+            //     .domain([0, d3.max(data, yValue)])
+            //     .range([0, innerHeight]);
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const xAxis = d3.axisBottom(xScale)
+                .tickSize(-innerHeight);
+
+            g.append('g')
+                .call(d3.axisLeft(yScale))
+                .selectAll('.domain, .tick line')
+                    .remove();
+
+            const xAxisG = g.append('g').call(xAxis)
+                .attr('transform', `translate(0,${innerHeight})`);
+
+            xAxisG.append('text')
+                .attr('class', 'axis-label')
+                .attr('y', 65)
+                .attr('x', innerWidth / 2)
+                .attr('fill', 'black')
+                .text(xAxisLabelText);
+
+            // g.selectAll('rect').data(data)
+            //     .enter().append('rect')
+            //         .attr('y', d => yScale(yValue(d)))
+            //         .attr('width', d => xScale(xValue(d)))
+            //         .attr('height', yScale.bandwidth());
+
+            g.selectAll('rect').data(data)
+                .enter().append('rect')
+                    .attr('y', d => yScale(yValue(d)))
+                    .attr('width', d => xScale(xValue(d)))
+                    .attr('height', yScale.bandwidth());
+
+            g.append('text')
+                .attr('class', 'title')
+                .attr('y', -10)
+                .text(titleText);
+        };
+
+        d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
+            var filteredData = data.filter(d => {
+                return d['Adverse Event'] === 'Abdominal pain';
+            })
+            filteredData.forEach(d => {
+                d.Count = +d.Count;
+            });
+            render(filteredData);
+        });
+    }
+
+    
+</script>

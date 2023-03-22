@@ -3,26 +3,49 @@ html, body{
     padding:0;
 }
 
+.centerdiv {
+    top: 0;
+    left: 160px;
+    right: 0;
+    height: 100%;
+    position: absolute;
+}
+
 .header {
     padding: 10px; 
     text-align: center;
     background: #b0537e;
     color: white;
     font-size: 30px;
-    float:top;
+    top:0;
+    left:0;
+    width:100%;
+}
+
+.body {
+    /* position:relative; */
+    /* top:0;
+    left:0; */
+    height:100%;
+    width:100%;
+}
+
+.main {
+    /* position:relative; */
+    height:800;
+    width:100%;
 }
 
 .sidenav {
     height: 100%;
     width: 160px;
-    float: left;
     z-index: 1; /* stay at the top */
     top: 0; /* stay at the top */
     left: 0;
-    top: 100px;
     background-color: #e184e3;
     overflow-x: hidden; /* disable horizontal scroll */
     padding-top: 20px;
+    position: fixed;
 }
 
 .sidenav a {
@@ -34,7 +57,27 @@ html, body{
 }
 
 .sidenav a:hover{
-    color: white;
+    background-color: grey;
+}
+
+.chart {
+    width:1000px;
+    height:1000px;
+    float:center;
+    position:relative;
+}
+
+.about {
+    background-color: #d9d9d9;
+    float: center;
+    left: 100px;
+    right: 100px;
+    height: 100%;
+    position: absolute;
+}
+
+rect {
+    fill: steelblue;
 }
 
 @media screen and (max-height: 450px){
