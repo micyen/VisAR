@@ -6,8 +6,9 @@
         </script>
         <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js">
         </script> -->
-        <script src="https://d3js.org/d3.v7.min.js">
-        </script>
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script> -->
+        <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3/+esm"></script> -->
     </head>
     <body>
         <div class="sidenav">
@@ -49,15 +50,16 @@
                 </h1>
             </div>
             <div class="body" id="charts">
-                <div class="parameters">
+                <!-- <div class="parameters">
                     <select name="drug" id="drug">
-                        <!-- options for each type of drug -->
+                        options for each type of drug
                     </select>
                     <select name="ar" id="ar">
-                        <!-- options for each type of adverse reaction -->
+                        options for each type of adverse reaction
                     </select>
                     <button type="button" id="newchart">Add Chart</button>
-                </div>
+                </div> -->
+                
                 <!-- <svg class="main" id="svg1"></svg> -->
             </div>
         </div>
@@ -68,9 +70,215 @@
 <!-- <script>
     console.log("HELLO");
 </script> -->
+
+
+<!-- 
+    What it an object looks like in json
+Array [ "48299", {…} ]
+​
+0: "48299"
+​
+1: Object { "": "48299", "Adverse Event": "Anhedonia", GroupBy: "FAMILY DOLLAR", … }
+​​
+"": "48299"
+​​
+"Adverse Event": "Anhedonia"
+​​
+Count: "0"
+​​
+GroupBy: "FAMILY DOLLAR"
+​​
+<prototype>: Object { … }
+​
+length: 2
+​
+<prototype>: Array [] -->
 <script type="module">
 
-    const addChart = () => {
+    import {range} from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
+
+    // document.getElementById("newchart").addEventListener("click", addChart);
+    startChart('Acetaminophen');
+
+    function startChart(drug) {
+
+        const titleText = `Adverse Effects for ${drug}`;
+        const xAxisLabelText = 'Count';
+               
+        const parent = d3.select("#charts");
+
+        parent.append("svg")
+            .attr("width",  "1000")
+            .attr("height", "600")
+            .attr("id", "svg_chart")
+            .style('pointer-events', 'none')
+            .style('position', 'absolute')
+            .style('z-index', 1);
+
+        const svg = d3.select("#svg_chart");
+        // const svg = d3.select('svg');
+
+        // const width = parseInt(+svg.attr("width"), 10);
+        // const height = parseInt(+svg.attr("height"), 10);
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        console.log(width);
+        console.log(height);
+
+        const render = data => {
+
+            const yValue = d => d['AE'];
+            const xValue = d => d['Count'];
+
+            const margin = { top: 50, right: 40, bottom: 77, left: 200 };
+            const innerWidth = width - margin.left - margin.right;
+            const innerHeight = height - margin.top - margin.bottom;
+            const overHeight = data.length * 9.225 + margin.left + margin.right;
+
+            const xScale = d3.scaleLinear()
+                .domain([0, d3.max(data, xValue)])
+                .range([0, innerWidth]);
+
+            // const yScale = d3.scaleBand()
+            //     .domain(data.map(yValue))
+            //     .range([0, innerHeight])
+            //     .padding(0.1);
+
+            const range = d3.range(0, (data.length + 1) * 15000, 15000);
+            console.log(range);
+
+            const yScale = d3.scaleBand()
+                .domain(data.map(yValue))
+                .range(range)
+                .padding(0.1);
+
+            // const xScale = d3.scaleBand()
+            //     .domain(data.map(xValue))
+            //     .range([0, innerWidth])
+            //     .padding(0.1);
+
+            // const yScale = d3.scaleLinear()
+            //     .domain([0, d3.max(data, yValue)])
+            //     .range([0, innerHeight]);
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            const xAxis = d3.axisBottom(xScale)
+                .tickSize(-innerHeight);
+
+            const xAxisG = g.append('g').call(xAxis)
+                .attr('transform', `translate(0,${innerHeight})`);
+
+            xAxisG.append('text')
+                .attr('class', 'axis-label')
+                .attr('y', 65)
+                .attr('x', innerWidth / 2)
+                .attr('fill', 'black')
+                .text(xAxisLabelText);
+
+            const body = parent.append('div')
+                .style('overflow-y', 'scroll')
+                .style('overflow-x', 'hidden')
+                // .style('-webkit-overflow-scrolling', 'touch')
+                .style('width', '1000px')
+                .style('height', '600px')
+                .attr('id', 'scroll');
+
+            const inner_svg = body.append('svg')
+                .attr("width",  "1000px")
+                .attr("height", overHeight)
+                .attr('id', 'inner_svg')
+                .style('display', 'block');
+                // .call(a => a.append('g').call(yAxis));
+
+            const g2 = inner_svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+                
+            const yAxis = d3.axisLeft(yScale)
+                // .call(g => g.select('.domain'.remove()))
+                // .call(g => g.select('.tick:last-of-type text').clone())
+                //     .attr('y', 3)
+                //     .attr('text-anchor', 'start')
+                //     .attr('font-weight', 'bold)')
+                //     .text(data.y))
+
+            const yAxisG = g2.append('g').call(yAxis)
+                .selectAll('.domain, .tick line').remove();
+                
+            // g.append('g')
+            //     .call(d3.axisLeft(yScale))
+            //     .selectAll('.domain, .tick line')
+            //         .remove();
+
+            // g.selectAll('rect').data(data)
+            //     .enter().append('rect')
+            //         .attr('y', d => yScale(yValue(d)))
+            //         .attr('width', d => xScale(xValue(d)))
+            //         .attr('height', yScale.bandwidth());
+
+            g2.selectAll('mybar')
+                .data(data)
+                .join('rect')
+                    .attr('y', d => yScale(yValue(d)))
+                    .attr('height', d => yScale.bandwidth())
+                    .attr('x', d => 0) 
+                    .attr('width', d => 0); 
+
+            // g.selectAll('rect').data(data)
+            //     .enter().append('rect')
+            //         .attr('y', d => yScale(yValue(d)))
+            //         .attr('width', d => xScale(xValue(d)))
+            //         .attr('height', yScale.bandwidth());
+
+            g2.selectAll('rect')
+                .transition()
+                .duration(1000)
+                .attr('x', d => 0)
+                .attr('width', d => xScale(xValue(d)));
+                // .delay((d, i) => {console.log(i); return i * 100});
+                    
+            g2.append('text')
+                .attr('class', 'title')
+                .attr('y', -10)
+                .text(titleText);
+        };
+
+        d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
+            // console.log(data)
+            var aggr_data = {}
+            var aggr_data_list = []
+            function aggregate(_callback){
+                Object.entries(data).forEach((entry) => {
+                    const ae = entry[1]['Adverse Event'];
+                    const count = entry[1]['Count'];
+                    if (ae in aggr_data) {
+                        aggr_data[ae] += +count;
+                    }
+                    else {
+                        aggr_data[ae] = +count;
+                    }
+                });
+                aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
+                _callback();
+            }
+
+            function aggregate2(){
+                aggregate(function() {
+                    render(aggr_data_list);
+                })
+            }
+
+            aggregate2();
+            // filteredData.forEach(d => {
+            //     d.Count = +d.Count;
+            // });
+            // render(aggr_data);
+        });
+    }
+
+    function addChart() {
+        console.log('button click');
         const titleText = 'Abdominal Pain for Acetaminophen by Manufacturer';
         const xAxisLabelText = 'Count';
         
@@ -161,6 +369,7 @@
             filteredData.forEach(d => {
                 d.Count = +d.Count;
             });
+            console.log(filteredData);
             render(filteredData);
         });
     }
