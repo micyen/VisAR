@@ -2,7 +2,6 @@
 <html>
     <head>
         <link rel="stylesheet" href="style.css">
-        <script src="https://cdn.plot.ly/plotly-2.18.2.min.js">
         </script>
         <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js">
         </script> -->
@@ -10,7 +9,7 @@
         <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script> -->
         <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3/+esm"></script> -->
     </head>
-    <body>
+    <body id="main">
         <div class="sidenav">
             <a href="./dashboard.html">
                 <img src="imgs/Home_Icon.svg" alt="Home Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
@@ -18,7 +17,7 @@
                     Home
                 </div>
             </a>
-            <a href="./bipartite.html">
+            <a href="./forcegraph.html">
                 <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
@@ -136,7 +135,7 @@ length: 2
             const overHeight = data.length * 9.225 + margin.left + margin.right;
 
             const xScale = d3.scaleLinear()
-                .domain([0, d3.max(data, xValue)])
+                .domain([0, d3.max(data, xValue) + 50])
                 .range([0, innerWidth]);
 
             // const yScale = d3.scaleBand()
@@ -165,10 +164,16 @@ length: 2
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
             const xAxis = d3.axisBottom(xScale)
-                .tickSize(-innerHeight);
+                .tickSize(-innerHeight)
+                .ticks(5);
 
             const xAxisG = g.append('g').call(xAxis)
                 .attr('transform', `translate(0,${innerHeight})`);
+
+            g.append('text')
+                .attr('class', 'title')
+                .attr('y', -10)
+                .text(titleText);
 
             xAxisG.append('text')
                 .attr('class', 'axis-label')
@@ -177,23 +182,36 @@ length: 2
                 .attr('fill', 'black')
                 .text(xAxisLabelText);
 
+            const filler = parent.append('div')
+                .style('width', '1000px')
+                .style('height', margin.top + 'px')
+                .attr('id', 'filler');
+            
             const body = parent.append('div')
                 .style('overflow-y', 'scroll')
                 .style('overflow-x', 'hidden')
                 // .style('-webkit-overflow-scrolling', 'touch')
                 .style('width', '1000px')
-                .style('height', '600px')
+                .style('height', innerHeight + "px")
+                // .style('padding-top', margin.top + "px")
+                // .style('position', 'absolute')
+                //.attr('transform', `translate(0,${margin.top + 'px'})`)
+                // .style('height', '600px')
                 .attr('id', 'scroll');
-
+            console.log(overHeight);
+            console.log(innerHeight);
             const inner_svg = body.append('svg')
                 .attr("width",  "1000px")
-                .attr("height", overHeight)
+                //.attr("height", overHeight)
+                .attr("height", overHeight + "px")
                 .attr('id', 'inner_svg')
                 .style('display', 'block');
                 // .call(a => a.append('g').call(yAxis));
 
             const g2 = inner_svg.append('g')
-                .attr('transform', `translate(${margin.left},${margin.top})`);
+                // .attr('transform', `translate(${margin.left},${margin.top})`);
+                .attr('transform', `translate(${margin.left},0)`);
+
                 
             const yAxis = d3.axisLeft(yScale)
                 // .call(g => g.select('.domain'.remove()))
@@ -216,6 +234,47 @@ length: 2
             //         .attr('y', d => yScale(yValue(d)))
             //         .attr('width', d => xScale(xValue(d)))
             //         .attr('height', yScale.bandwidth());
+            
+            var tooltip = d3.select('#main')
+                .append("div")
+                // .style("opacity", 0)
+                .style("visibility", "hidden")
+                .style("background-color", "white")
+                .style("border", "solid")
+                .style("border-width", "1px")
+                .style("border-radius", "5px")
+                .style("position", "absolute")
+                .style("z-index", 2)
+                .text("hi")
+                .style("padding", "10px");
+
+            var mouseover = function(d) {
+                // var subgroupValue = d.data[subgroupName];
+                tooltip
+                    // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
+                    .html("Adverse Effect: " + d["AE"] + "<br>" + "Count: " + d["Count"])
+                    // .style("opacity", 1)
+                    .style("visibility", "visible");
+            };
+
+            var mousemove = function(e, d) {
+                tooltip
+                    .style("left", (e.pageX + 30) + "px")
+                    .style("top", (e.pageY) + "px");
+            };
+
+            var mouseleave = function(d) {
+                tooltip
+                    // .style("opacity", 0)
+                    .style("visibility", "hidden");
+            };
+
+            var mouseclick = function(d) {
+                tooltip
+                    // .style("opacity", 0)
+                    .style("visibility", "hidden");
+                addChart(d["AE"]);
+            }
 
             g2.selectAll('mybar')
                 .data(data)
@@ -223,7 +282,13 @@ length: 2
                     .attr('y', d => yScale(yValue(d)))
                     .attr('height', d => yScale.bandwidth())
                     .attr('x', d => 0) 
-                    .attr('width', d => 0); 
+                    .attr('width', d => 0)
+                    .attr('id', d => d['AE'])
+                    .style("cursor", "pointer")
+                .on("mouseover", (_, d) => {mouseover(d)})
+                .on("mousemove", (e, d) => {mousemove(e, d)})
+                .on("mouseleave", (_, d) => {mouseleave(d)})
+                .on("click", (_, d) => {mouseclick(d)});
 
             // g.selectAll('rect').data(data)
             //     .enter().append('rect')
@@ -235,13 +300,8 @@ length: 2
                 .transition()
                 .duration(1000)
                 .attr('x', d => 0)
-                .attr('width', d => xScale(xValue(d)));
+                .attr('width', d => xScale(xValue(d)))
                 // .delay((d, i) => {console.log(i); return i * 100});
-                    
-            g2.append('text')
-                .attr('class', 'title')
-                .attr('y', -10)
-                .text(titleText);
         };
 
         d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
@@ -260,6 +320,8 @@ length: 2
                     }
                 });
                 aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
+                console.log("Biggest");
+                console.log(aggr_data_list.find(e => e['Count'] >= '900'));
                 _callback();
             }
 
@@ -277,16 +339,24 @@ length: 2
         });
     }
 
-    function addChart() {
-        console.log('button click');
-        const titleText = 'Abdominal Pain for Acetaminophen by Manufacturer';
+    function addChart(ae) {
+        console.log("button");
+        console.log(ae);
+        const drug = 'Acetaminophen'
+        const titleText = `${ae} for ${drug} by Manufacturer`;
         const xAxisLabelText = 'Count';
         
-        d3.select("#charts")
+        parent = d3.select("#charts");
+
+        parent
+            .selectAll('*')
+            .remove();
+        
+        parent
             .append("svg")
             .attr("width",  "1000")
             .attr("height", "800")
-            .attr("id", "svg1")
+            .attr("id", "svg1");
 
         const svg = d3.select('#svg1');
         // const svg = d3.select('svg');
@@ -364,7 +434,7 @@ length: 2
 
         d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
             var filteredData = data.filter(d => {
-                return d['Adverse Event'] === 'Abdominal pain';
+                return d['Adverse Event'] === ae;
             })
             filteredData.forEach(d => {
                 d.Count = +d.Count;
