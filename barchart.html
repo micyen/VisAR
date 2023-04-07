@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="./styles/style.css">
+        <link rel="stylesheet" href="./styles/barchart_styles.css">
         </script>
         <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js">
         </script> -->
@@ -48,50 +49,11 @@
                     VisAR
                 </h1>
             </div>
-            <div class="body" id="charts">
-                <!-- <div class="parameters">
-                    <select name="drug" id="drug">
-                        options for each type of drug
-                    </select>
-                    <select name="ar" id="ar">
-                        options for each type of adverse reaction
-                    </select>
-                    <button type="button" id="newchart">Add Chart</button>
-                </div> -->
-                
-                <!-- <svg class="main" id="svg1"></svg> -->
-            </div>
+            <div class="body" id="charts"></div>
         </div>
     </body>
 </html>
 
-<!-- <script type="module" src="./barchart.js"></script> -->
-<!-- <script>
-    console.log("HELLO");
-</script> -->
-
-
-<!-- 
-    What it an object looks like in json
-Array [ "48299", {…} ]
-​
-0: "48299"
-​
-1: Object { "": "48299", "Adverse Event": "Anhedonia", GroupBy: "FAMILY DOLLAR", … }
-​​
-"": "48299"
-​​
-"Adverse Event": "Anhedonia"
-​​
-Count: "0"
-​​
-GroupBy: "FAMILY DOLLAR"
-​​
-<prototype>: Object { … }
-​
-length: 2
-​
-<prototype>: Array [] -->
 <script type="module">
 
     import {range} from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
@@ -346,7 +308,7 @@ length: 2
         const titleText = `${ae} for ${drug} by Manufacturer`;
         const xAxisLabelText = 'Count';
         
-        parent = d3.select("#charts");
+        const parent = d3.select("#charts");
 
         parent
             .selectAll('*')
@@ -357,6 +319,11 @@ length: 2
             .attr("width",  "1000")
             .attr("height", "800")
             .attr("id", "svg1");
+
+        parent
+            .append("button")
+            .attr("class", "back")
+            .text("Back")
 
         const svg = d3.select('#svg1');
         // const svg = d3.select('svg');

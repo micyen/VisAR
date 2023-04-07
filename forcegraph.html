@@ -2,8 +2,8 @@
 <html>
     <head>
         <link rel="stylesheet" href="./styles/style.css">
-        <link rel="stylesheet" href="./styles/treemap_styles.css">
-        <script src='https://cdn.plot.ly/plotly-2.20.0.min.js'></script>
+        <script src="https://unpkg.com/3d-force-graph">
+        </script>
     </head>
     <body>
         <div class="sidenav">
@@ -46,17 +46,25 @@
             </div>
             <div class="chart" id="tester"></div>
         </div>
+        <div class="centerdiv">
+            <div class="header">
+                <h1>
+                    VisAR
+                </h1>
+            </div>
+            <div class="forcegraph" id="forcegraph"></div>
+        </div>
     </body>
 </html>
 
-<script>
-    fetch('./data/ReactData_NAPROXEN_tree_json.txt')
-    .then((response) => response.json())
-    .then((json) => {
-        Plotly.newPlot('tester', json, {responsive: true})
-    });
+<script type="module">
+	const elem = document.getElementById('forcegraph');
 
-    // function addChart(age, weight, sex){
-
-    // }
+    const myGraph = ForceGraph3D();
+    
+    myGraph(elem)
+    .jsonUrl('./data/blocks.json')
+    .nodeAutoColorBy('user')
+    .nodeLabel(node => `${node.user}: ${node.description}`)
+    .onNodeClick(node => window.open(`https://bl.ocks.org/${node.user}/${node.id}`, '_blank'));
 </script>
