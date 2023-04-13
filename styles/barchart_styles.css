@@ -2,18 +2,27 @@
     /* position:relative; */
     /* top:0;
     left:0; */
-    height:100%;
-    width:100%;
-    padding-left: 100px;
+    height:auto;
+    width:auto;
+    /* padding-left: 100px; */
 }
 
+.menu {
+    /* position:relative; */
+    /* top:0;
+    left:0; */
+    height:50px;
+    width:auto;
+    /* padding-left: 100px; */
+}
 
-rect {
+/* rect {
     fill: steelblue;
-}
+} */
 
 rect:hover {
     fill: yellow;
+    outline: solid red;
 }
 
 .button {
@@ -27,6 +36,8 @@ rect:hover {
     margin: 4px 2px;
     transition-duration: 0.4s;
     cursor: pointer;
+    width: 50px;
+    height: 20px;
 }
 
 .back {
