@@ -126,6 +126,29 @@
             .text("Back")
             // .style("position", "float")
 
+        const sliderDiv = parent.append('div')
+            .style('width', 'auto')
+            .style('height', '50px')
+            .style('text-align', 'center')
+            .attr('id', 'sliders');
+
+        const zoomLabel = sliderDiv.append('label')
+            .attr('id', 'zoomLabel')
+            .html('Zoom');
+
+        const zoomSlider = zoomLabel.append('input')
+            .attr('id', 'zoom')
+            .attr('type', 'range')
+            .attr('min', 5)
+            .attr('max', 20)
+            .attr('value', 10)
+            .attr('step', 1);
+
+        // const sliderDivDOM = document.getElementById("sliders");
+        // sliderDivDOM.appendChild(zoom);
+
+        // const slider_div.append('')
+
         parent.append("svg")
             .attr("width",  "1200")
             .attr("height", "600")
@@ -221,7 +244,6 @@
                 .attr("height", overHeight + "px")
                 .attr('id', 'inner_svg')
                 .style('display', 'block');
-                // .call(zoom);
 
             const g2 = inner_svg.append('g')
                 .attr('transform', `translate(${margin.left},0)`);
@@ -304,28 +326,32 @@
                 // .delay((d, i) => {console.log(i); return i * 100});
 
             // TODO: Figure out this zoom function
-            // function zoom(svg) {
-            //     const extent = [[margin.left, margin.top], [width - margin.right, height - margin.top]];
+            function zoom(svg) {
+                const extent = [[margin.left, margin.top], [width - margin.right, height - margin.top]];
 
-            //     svg.call(d3.zoom()
-            //         .scaleExtent([1, 8])
-            //         .translateExtent(extent)
-            //         .extent(extent)
-            //         .on("zoom", zoomed));
+                svg.call(d3.zoom()
+                    .scaleExtent([1, 8])
+                    .translateExtent(extent)
+                    .extent(extent)
+                    .on("zoom", zoomed));
 
-            //     function zoomed(event) {
-            //         x.range([margin.left, width - margin.right].map(d => event.transform.applyX(d)));
-            //         svg.selectAll(".bars rect").attr("x", d => x(d.name)).attr("width", x.bandwidth());
-            //         svg.selectAll(".x-axis").call(xAxis);
-            //     }
-            // }
+                function zoomed(event) {
+                    yScale.range(range.map(d => event.transform.applyY(d)));
+                    svg.selectAll(".bars rect").attr("y", d => yScale(yValue(d))).attr("height", yScale.bandwidth());
+                    svg.selectAll(".y-axis").call(yAxis);
+                }
+            }
 
+            zoomSlider.on('change', function(d){
+                
+            })
+
+            // d3.range(0, overHeight * (data.length + 1), overHeight);
             // var zoom = d3.zoom()
             //   .scaleExtent([1, 10])
             //   .translateExtent([[0, 0], [width, height]])
             //   .on("zoom", zoomed);
 
-            
         };
         
         d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {

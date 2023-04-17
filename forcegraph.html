@@ -139,22 +139,37 @@
             })
             .then((response) => {
                 try {
-                    response.json()
-                    .then((json) => JSON.parse(json['body']))
-                    // .then((jsonBody) => jsonBody.json())
-                    .then((jsonBody) => {
-                        const nodes = jsonBody['nodes'];
-                        const links = jsonBody['links'];
+                    const text = response.text()
+                    .then((t) => {
+                        if(text === "ERROR"){
+                        console.log("ERROR");
+                        }
+                        else{
+                            // JSON.parse(t)
+                            // .then((json) => JSON.parse(json['body']))
+                            // // .then((jsonBody) => jsonBody.json())
+                            // .then((jsonBody) => {
+                            //     const nodes = jsonBody['nodes'];
+                            //     const links = jsonBody['links'];
 
-                        if(nodes.length > 4000 || links.length > 1000) {
-                            if(confirm("This graph might be too large to render! Are you sure?")){
-                                renderGraph(jsonBody);
-                            }
+                            //     console.log(nodes.length);
+                            //     console.log(links.length);
+
+                            //     // if(nodes.length > 4000 || links.length > 1000) {
+                            //     if(true){
+                            //         if(confirm("This graph might be too large to render! Are you sure?")){
+                            //             renderGraph(jsonBody);
+                            //         }
+                            //     }
+                            //     else {
+                            //         renderGraph(jsonBody);
+                            //     }
+                            // })
                         }
-                        else {
-                            renderGraph(jsonBody);
-                        }
-                    });
+                        fetch('./data/blocks.json')
+                        .then((response) => response.json())
+                        .then(json => renderGraph(json))
+                    }) 
                 }
                 catch(err) {
                     alert(err);
@@ -167,10 +182,80 @@
         const elem = document.getElementById('forcegraph');
         const myGraph = ForceGraph3D();
 
+        // cross-link node objects
+        jsonBody.links.forEach(link => {
+            var a = jsonBody.nodes.filter(node => {
+                return node.id === link.source
+            })[0];
+            var b = jsonBody.nodes.filter(node => {
+                return node.id === link.target
+            })[0];
+            !a.neighbors && (a.neighbors = []);
+            !b.neighbors && (b.neighbors = []);
+            a.neighbors.push(b);
+            b.neighbors.push(a);
+
+            !a.links && (a.links = []);
+            !b.links && (b.links = []);
+            a.links.push(link);
+            b.links.push(link);
+        });
+
+        console.log(jsonBody);
+
+        const highlightNodes = new Set();
+        const highlightLinks = new Set();
+        let hoverNode = null;
+
         myGraph(elem)
+        // .warmupTicks(200)
+        .cooldownTicks(100)
         .graphData(jsonBody)
-        .nodeAutoColorBy('name')
-        .nodeLabel(node => `${node.name}`)
+        .nodeColor(node => highlightNodes.has(node) ? node === hoverNode ? 'rgb(255,0,0,1)' : 'rgba(255,160,0,0.8)' : 'rgba(0,255,255,0.6)')
+        .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
+        .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
+        .linkDirectionalParticleWidth(4)
+        .nodeLabel(node => `${node.name}`) //
+        .linkLabel(link => `${link.source}`) // change to actual link name
+        .onNodeHover(node => {
+          // no state change
+          if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
+
+          highlightNodes.clear();
+          highlightLinks.clear();
+          if (node) {
+            highlightNodes.add(node);
+            node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+            node.links.forEach(link => highlightLinks.add(link));
+          }
+
+          hoverNode = node || null;
+
+          updateHighlight();
+        })
+        .onLinkHover(link => {
+          highlightNodes.clear();
+          highlightLinks.clear();
+
+          if (link) {
+            highlightLinks.add(link);
+            highlightNodes.add(link.source);
+            highlightNodes.add(link.target);
+          }
+
+          updateHighlight();
+        });
         //TODO: label edges and other stuff
+
+        function updateHighlight() {
+            // trigger update of highlighted objects in scene
+            myGraph
+            .nodeColor(myGraph.nodeColor())
+            .linkWidth(myGraph.linkWidth())
+            .linkDirectionalParticles(myGraph.linkDirectionalParticles());
+            //.linkColor(myGraph.)
+        }
+
+        // myGraph.onEngineStop(() => myGraph.zoomToFit(400));
     }
 </script>
