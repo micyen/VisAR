@@ -1,0 +1,21 @@
+.about {
+    width: 500px;
+    /* top: 50%;
+    left: 50%; */
+    /* transform: translate(-50%, -50%); */
+    background-color: #f5f5f5;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    margin-right: auto;
+    margin-left: auto;
+    /* margin-top: auto; */
+    /* margin-bottom: auto; */
+}
+
+.description {
+    font-size: 16px;
+    color: #333;
+    line-height: 1.5;
+}

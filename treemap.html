@@ -14,7 +14,7 @@
                 </div>
             </a>
             <a href="./forcegraph.html">
-                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
                 </div>
@@ -44,19 +44,184 @@
                     VisAR
                 </h1>
             </div>
-            <div class="chart" id="tester"></div>
+            <div class="menu" id="menu"></div>
+            <div class="chart" id="charts"></div>
         </div>
     </body>
 </html>
 
 <script>
-    fetch('./data/ReactData_NAPROXEN_tree_json.txt')
-    .then((response) => response.json())
-    .then((json) => {
-        Plotly.newPlot('tester', json, {responsive: true})
-    });
 
-    // function addChart(age, weight, sex){
+    selectDemographicInitiate();
 
-    // }
+    function selectDemographicInitiate() {
+
+        fetch('https://faers-proj.s3.amazonaws.com/Data/DrugList.txt')
+        .then((response) => response.text())
+        .then((text) => {
+            var druglist = text.split("\n");
+            // const parent = document.getElementById("charts");
+            // const menu = document.getElementById("menu");
+            // menu.replaceChildren();
+            // parent.replaceChildren();
+
+            const select = document.createElement("select");
+            select.id = "drug";
+
+            for (var i = 0; i < druglist.length; i++) {
+                var option = document.createElement("option");
+                option.value = druglist[i].trim();
+                option.text = druglist[i].trim();
+                select.appendChild(option);
+            }
+
+            return select
+        })
+        .then((drugSelect) => {
+            const parent = document.getElementById("menu");
+            const form = document.createElement('form');
+
+            const drugLabel = document.createElement('label');
+            drugLabel.textContent = 'Drug: ';
+            drugLabel.appendChild(drugSelect);
+
+            const sexLabel = document.createElement('label');
+            sexLabel.textContent = 'Sex: ';
+            const sexInput = document.createElement('select');
+            sexInput.id = 'sex';
+            const sexOptions = ['Male', 'Female', 'Unknown'];
+            for (let i = 0; i < sexOptions.length; i++) {
+                const option = document.createElement('option');
+                option.value = sexOptions[i];
+                option.textContent = sexOptions[i];
+                sexInput.appendChild(option);
+            }
+            sexLabel.appendChild(sexInput);
+
+            const ageLabel = document.createElement('label');
+            ageLabel.textContent = 'Age (years): ';
+            const minAgeInput = document.createElement('input');
+            minAgeInput.type = 'number';
+            minAgeInput.min = 0;
+            minAgeInput.max = 200;
+            minAgeInput.placeholder = 'Minimum Age';
+            minAgeInput.id = 'ageMin';
+            const maxAgeInput = document.createElement('input');
+            maxAgeInput.type = 'number';
+            maxAgeInput.min = 0;
+            maxAgeInput.max = 200;
+            maxAgeInput.placeholder = 'Maximum Age';
+            maxAgeInput.id = 'ageMax';
+
+            const weightLabel = document.createElement('label');
+            weightLabel.textContent = 'Weight (kg): ';
+            const minWeightInput = document.createElement('input');
+            minWeightInput.type = 'number';
+            minWeightInput.min = 1;
+            minWeightInput.max = 500;
+            minWeightInput.placeholder = 'Minimum Weight';
+            minWeightInput.id = 'wtMin';
+            const maxWeightInput = document.createElement('input');
+            maxWeightInput.type = 'number';
+            maxWeightInput.min = 1;
+            maxWeightInput.max = 500;
+            maxWeightInput.placeholder = 'Maximum Weight';
+            maxWeightInput.id = 'wtMax';
+
+            (("DE", 'Death'),("DS",'Disabled'),("CA", 'Birth Defects'), ("LT",'Life Threatening'), ("HO", 'Hospitalization'),  ("RI",'Required Intervention'))
+
+            const outcomeLabel = document.createElement('label');
+            outcomeLabel.textContent = 'Outcome: ';
+            const outcomeInput = document.createElement('select');
+            outcomeInput.id = 'outcome';
+            const outcomeOptions = ['Any Outcome', 'Birth Defects', 'Death', 'Disabled', 'Hospitalization', 'Life Threatening', 'Required Intervention', ];
+            for (let i = 0; i < outcomeOptions.length; i++) {
+                const option = document.createElement('option');
+                option.value = outcomeOptions[i];
+                option.textContent = outcomeOptions[i];
+                outcomeInput.appendChild(option);
+            }
+            outcomeLabel.appendChild(outcomeInput);
+
+            const submitButton = document.createElement('input');
+            submitButton.type = 'submit';
+            submitButton.value = 'Submit';
+
+            form.appendChild(drugLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(sexLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(ageLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(minAgeInput);
+            form.appendChild(document.createTextNode(' to '));
+            form.appendChild(maxAgeInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(weightLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(minWeightInput);
+            form.appendChild(document.createTextNode(' to '));
+            form.appendChild(maxWeightInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(outcomeLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(submitButton);
+
+            parent.appendChild(form);
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const drug = document.getElementById("drug").value;
+                const sex = document.getElementById("sex").value;
+                const ageMax = document.getElementById("ageMax").valueAsNumber;
+                const ageMin = document.getElementById("ageMin").valueAsNumber;
+                const wtMax = document.getElementById("wtMax").valueAsNumber;
+                const wtMin = document.getElementById("wtMin").valueAsNumber;
+                const outcome = document.getElementById("outcome").value;
+
+                const demographicJSON = JSON.stringify({"drug": drug, "ageMin": ageMin, "ageMax":ageMax, "wtMin":wtMin, "wtMax":wtMax, "sex": sex, "outcome":outcome});
+                console.log(demographicJSON);
+
+                fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/treemap', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: demographicJSON
+                })
+                .then((response) => {
+                    try {
+                        response.json()
+                        .then((json) => {
+                            // console.log(json);
+                            // console.log(JSON.parse(json['body']));
+                            Plotly.newPlot('charts', JSON.parse(json['body']));
+                        })
+                    }
+                    catch(err) {
+                        alert(err);
+                    }
+                });
+
+                // let username = document.getElementById("username");
+                // let password = document.getElementById("password");
+
+                // if (username.value == "" || password.value == "") {
+                // // throw error
+                // } else {
+                // // perform operation with form input
+                // }
+            });
+        })
+    }
+
+    // {"drug": "ACETAMINOPHEN", "ageMin": 5, "ageMax":60, "wtMin": 100, "wtMax":200, "sex": "Male", "outcome":"Any Outcome"}
+
 </script>

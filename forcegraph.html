@@ -2,7 +2,7 @@
 <html>
     <head>
         <link rel="stylesheet" href="./styles/style.css">
-        <script src="https://unpkg.com/3d-force-graph">
+        <script src="https://unpkg.com/3d-force-graph"></script>
         </script>
     </head>
     <body>
@@ -14,7 +14,7 @@
                 </div>
             </a>
             <a href="./forcegraph.html">
-                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
                 </div>
@@ -44,27 +44,133 @@
                     VisAR
                 </h1>
             </div>
-            <div class="chart" id="tester"></div>
-        </div>
-        <div class="centerdiv">
-            <div class="header">
-                <h1>
-                    VisAR
-                </h1>
-            </div>
+            <div class="menu" id="menu"></div>
             <div class="forcegraph" id="forcegraph"></div>
         </div>
     </body>
 </html>
 
 <script type="module">
-	const elem = document.getElementById('forcegraph');
 
-    const myGraph = ForceGraph3D();
-    
-    myGraph(elem)
-    .jsonUrl('./data/blocks.json')
-    .nodeAutoColorBy('user')
-    .nodeLabel(node => `${node.user}: ${node.description}`)
-    .onNodeClick(node => window.open(`https://bl.ocks.org/${node.user}/${node.id}`, '_blank'));
+    selectDemographicInitiate();
+
+    function selectDemographicInitiate() {
+
+    fetch('https://faers-proj.s3.amazonaws.com/Data/DrugList.txt')
+    .then((response) => response.text())
+    .then((text) => {
+        var druglist = text.split("\n");
+        // const parent = document.getElementById("charts");
+        // const menu = document.getElementById("menu");
+        // menu.replaceChildren();
+        // parent.replaceChildren();
+
+        const select = document.createElement("select");
+        select.id = "drug";
+
+        for (var i = 0; i < druglist.length; i++) {
+            var option = document.createElement("option");
+            option.value = druglist[i].trim();
+            option.text = druglist[i].trim();
+            select.appendChild(option);
+        }
+
+        return select
+    })
+    .then((drugSelect) => {
+        const parent = document.getElementById("menu");
+        const form = document.createElement('form');
+
+        const drugLabel = document.createElement('label');
+        drugLabel.textContent = 'Drug: ';
+        drugLabel.appendChild(drugSelect);
+
+        const distanceLabel = document.createElement('label');
+        distanceLabel.textContent = 'Distance (from Source Drug Node): ';
+        const distanceInput = document.createElement('input');
+        distanceInput.type = 'number';
+        distanceInput.min = 0;
+        distanceInput.placeholder = 'Distance';
+        distanceInput.id = 'distance';
+
+        const minWtLabel = document.createElement('label');
+        minWtLabel.textContent = 'Minimum Edge Weight (Number of Cases): ';
+        const weightInput = document.createElement('input');
+        weightInput.type = 'number';
+        weightInput.min = 0;
+        weightInput.placeholder = 'Minimum Weight';
+        weightInput.id = 'minWt';
+
+        const submitButton = document.createElement('input');
+        submitButton.type = 'submit';
+        submitButton.value = 'Submit';
+
+        form.appendChild(drugLabel);
+        form.appendChild(document.createElement('br'));
+        form.appendChild(document.createElement('br'));
+        form.appendChild(distanceLabel);
+        form.appendChild(distanceInput);
+        form.appendChild(document.createElement('br'));
+        form.appendChild(document.createElement('br'));
+        form.appendChild(minWtLabel);
+        form.appendChild(weightInput);
+        form.appendChild(document.createElement('br'));
+        form.appendChild(document.createElement('br'));
+        form.appendChild(submitButton);
+        parent.appendChild(form);
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const drug = document.getElementById("drug").value;
+            const distance = document.getElementById("distance").valueAsNumber;
+            const minWt = document.getElementById("minWt").valueAsNumber;
+
+            const parameterJSON = JSON.stringify({"drug": drug, "distance": distance, "minWt":minWt});
+            console.log(parameterJSON);
+
+            fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/forceGraph', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: parameterJSON
+            })
+            .then((response) => {
+                try {
+                    response.json()
+                    .then((json) => JSON.parse(json['body']))
+                    // .then((jsonBody) => jsonBody.json())
+                    .then((jsonBody) => {
+                        const nodes = jsonBody['nodes'];
+                        const links = jsonBody['links'];
+
+                        if(nodes.length > 4000 || links.length > 1000) {
+                            if(confirm("This graph might be too large to render! Are you sure?")){
+                                renderGraph(jsonBody);
+                            }
+                        }
+                        else {
+                            renderGraph(jsonBody);
+                        }
+                    });
+                }
+                catch(err) {
+                    alert(err);
+                }
+            });
+        });
+    })}
+
+    function renderGraph(jsonBody) {
+        const elem = document.getElementById('forcegraph');
+        const myGraph = ForceGraph3D();
+
+        myGraph(elem)
+        .graphData(jsonBody)
+        .nodeAutoColorBy('name')
+        .nodeLabel(node => `${node.name}`)
+        //TODO: label edges and other stuff
+    }
 </script>

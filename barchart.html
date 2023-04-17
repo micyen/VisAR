@@ -19,7 +19,7 @@
                 </div>
             </a>
             <a href="./forcegraph.html">
-                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+                <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
                 </div>
@@ -76,7 +76,12 @@
 
             const select = document.createElement("select");
             select.id = "drug";
-            menu.appendChild(select);
+
+            const drugLabel = document.createElement('label');
+            drugLabel.textContent = 'Drug: ';
+            drugLabel.appendChild(select);
+
+            menu.appendChild(drugLabel);
 
             for (var i = 0; i < druglist.length; i++) {
                 var option = document.createElement("option");
@@ -92,7 +97,8 @@
             }
             button.id = "submit";
             button.innerText = "Submit";
-
+            menu.appendChild(document.createElement('br'));
+            menu.appendChild(document.createElement('br'));
             menu.appendChild(button);
         });
     }
@@ -359,102 +365,6 @@
     }
 
     function addChart(drug, ae) {
-        // console.log(ae);
-        // const titleText = `${ae} for ${drug} by Manufacturer`;
-        // const xAxisLabelText = 'Count';
-        
-        // const parent = d3.select("#charts");
-
-        // parent
-        //     .selectAll('*')
-        //     .remove();
-        
-        // parent
-        //     .append("svg")
-        //     .attr("width",  "1000")
-        //     .attr("height", "800")
-        //     .attr("id", "svg1");
-
-        // parent
-        //     .append("button")
-        //     .attr("class", "back")
-        //     .text("Back")
-
-        // const svg = d3.select('#svg1');
-        // // const svg = d3.select('svg');
-
-        // // const width = parseInt(+svg.attr("width"), 10);
-        // // const height = parseInt(+svg.attr("height"), 10);
-        // const width = +svg.attr("width");
-        // const height = +svg.attr("height");
-        // console.log(width);
-        // console.log(height);
-
-        // const render = data => {
-        //     const yValue = d => d['manufacturer'];
-        //     const xValue = d => d['Count'];
-        //     const margin = { top: 50, right: 40, bottom: 77, left: 200 };
-        //     const innerWidth = width - margin.left - margin.right;
-        //     const innerHeight = height - margin.top - margin.bottom;
-
-        //     const xScale = d3.scaleLinear()
-        //         .domain([0, d3.max(data, xValue)])
-        //         .range([0, innerWidth]);
-
-        //     const yScale = d3.scaleBand()
-        //         .domain(data.map(yValue))
-        //         .range([0, innerHeight])
-        //         .padding(0.1);
-
-        //     // const xScale = d3.scaleBand()
-        //     //     .domain(data.map(xValue))
-        //     //     .range([0, innerWidth])
-        //     //     .padding(0.1);
-
-        //     // const yScale = d3.scaleLinear()
-        //     //     .domain([0, d3.max(data, yValue)])
-        //     //     .range([0, innerHeight]);
-
-        //     const g = svg.append('g')
-        //         .attr('transform', `translate(${margin.left},${margin.top})`);
-
-        //     const xAxis = d3.axisBottom(xScale)
-        //         .tickSize(-innerHeight);
-
-        //     g.append('g')
-        //         .call(d3.axisLeft(yScale))
-        //         .selectAll('.domain, .tick line')
-        //             .remove();
-
-        //     const xAxisG = g.append('g').call(xAxis)
-        //         .attr('transform', `translate(0,${innerHeight})`);
-
-        //     xAxisG.append('text')
-        //         .attr('class', 'axis-label')
-        //         .attr('y', 65)
-        //         .attr('x', innerWidth / 2)
-        //         .attr('fill', 'black')
-        //         .text(xAxisLabelText);
-
-        //     // g.selectAll('rect').data(data)
-        //     //     .enter().append('rect')
-        //     //         .attr('y', d => yScale(yValue(d)))
-        //     //         .attr('width', d => xScale(xValue(d)))
-        //     //         .attr('height', yScale.bandwidth());
-
-        //     g.selectAll('rect').data(data)
-        //         .enter().append('rect')
-        //             .attr('y', d => yScale(yValue(d)))
-        //             .attr('width', d => xScale(xValue(d)))
-        //             .attr('height', yScale.bandwidth());
-
-        //     g.append('text')
-        //         .attr('class', 'title')
-        //         .attr('y', -10)
-        //         .text(titleText);
-
-        // }
-            // Starts here
 
         const titleText = `${ae} for ${drug} by Manufacturer`;
         const xAxisLabelText = 'Count';

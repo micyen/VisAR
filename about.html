@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="./styles/style.css">
+        <link rel="stylesheet" href="./styles/about_styles.css">
         <script src="https://cdn.plot.ly/plotly-2.18.2.min.js">
         </script>
     </head>
@@ -13,8 +14,8 @@
                     Home
                 </div>
             </a>
-            <a href="./bipartite.html">
-                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+            <a href="./forcegraph.html">
+                <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
                 </div>
@@ -44,18 +45,22 @@
                     VisAR
                 </h1>
             </div>
-            <div class="chart" id="tester"></div>
-        </div>
-        <div class="centerdiv">
-            <div class="header">
-                <h1>
-                    VisAR
-                </h1>
+            <div style="width: 100%; height: 50px">
             </div>
             <div class="about">
-                <div>
-                    Hi
-                </div>
+                <h2>About</h2>
+                <p class="description">
+                    <i>VisAR</i> is a project for <b>16:198:526 - Data Interaction and Visual Analytics</b> at Rutgers University, taught by <b>Professor James Abello</b>. 
+                </p>
+                <p class="description">
+                    This project is authored by <b>Michael Yen</b> and <b>Peter Krasucki</b>. 
+                </p>
+                <p class="description">
+                    The goal of this project is to facilitate visual analytics of the FDA Adverse Event Reporting System (FAERS) dataset, publicly available at <a href="url">https://fis.fda.gov/extensions/FPD-QDE-FAERS/FPD-QDE-FAERS.html</a>, using interactive graphs and charts.
+                </p>
+                <p>
+                    Libraries used to build this project include d3.js, 3d-force-graph, and plotly.js. Programming languages include Python, HTML/CSS and JavaScript.
+                </p>
             </div>
         </div>
     </body>

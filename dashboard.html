@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="style.css">
-        <script src="https://cdn.plot.ly/plotly-2.18.2.min.js">
+        <link rel="stylesheet" href="./styles/style.css">
+        <link rel="stylesheet" href="./styles/dashboard_styles.css">
         </script>
     </head>
     <body>
@@ -13,8 +13,8 @@
                     Home
                 </div>
             </a>
-            <a href="./bipartite.html">
-                <img src="imgs/Bipartite_Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
+            <a href="./forcegraph.html">
+                <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
                 </div>
@@ -44,14 +44,23 @@
                     VisAR
                 </h1>
             </div>
-            <div class="chart"></div>
+            <div class="container">
+                <div class="image-box" onclick="window.location.href='forcegraph.html'">
+                    <img src="imgs/Graph_Icon.svg" alt="Image 1">
+                    <div class="description">See a Force Graph showcasing drug relationships!</div>
+                </div>
+                <div class="image-box" onclick="window.location.href='treemap.html'">
+                    <img src="imgs/Treemap_Icon.svg" alt="Image 2">
+                    <div class="description">See a Treemap showing patient demographics for drugs!</div>
+                </div>
+                <div class="image-box" onclick="window.location.href='barchart.html'">
+                    <img src="imgs/Barchart_Icon.svg" alt="Image 3">
+                    <div class="description">See a Barchart comparing adverse effects by company for drugs!</div>
+                </div>
+            </div>
         </div>
     </body>
 </html>
 
 <script>
-	TESTER = document.getElementById('tester');
-    fetch('./data.json')
-    .then((response) => response.json())
-    .then((json) => Plotly.newPlot(TESTER, json));
 </script>
