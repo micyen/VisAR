@@ -60,11 +60,6 @@
         .then((response) => response.text())
         .then((text) => {
             var druglist = text.split("\n");
-            // const parent = document.getElementById("charts");
-            // const menu = document.getElementById("menu");
-            // menu.replaceChildren();
-            // parent.replaceChildren();
-
             const select = document.createElement("select");
             select.id = "drug";
 
@@ -89,7 +84,7 @@
             sexLabel.textContent = 'Sex: ';
             const sexInput = document.createElement('select');
             sexInput.id = 'sex';
-            const sexOptions = ['Male', 'Female', 'Unknown'];
+            const sexOptions = ['Any Sex', 'Male', 'Female'];
             for (let i = 0; i < sexOptions.length; i++) {
                 const option = document.createElement('option');
                 option.value = sexOptions[i];
@@ -185,8 +180,14 @@
                 const wtMin = document.getElementById("wtMin").valueAsNumber;
                 const outcome = document.getElementById("outcome").value;
 
-                const demographicJSON = JSON.stringify({"drug": drug, "ageMin": ageMin, "ageMax":ageMax, "wtMin":wtMin, "wtMax":wtMax, "sex": sex, "outcome":outcome});
-                console.log(demographicJSON);
+                var demographicJSON = {"drug": drug, "ageMin": ageMin, "ageMax":ageMax, "wtMin":wtMin, "wtMax":wtMax, "sex": sex, "outcome":outcome}
+
+                var filtered = Object.fromEntries(Object.entries(demographicJSON).filter(([_, v]) => !isNaN(v) || (typeof v === 'string')))
+                if(filtered['sex'] === 'Any Sex') {
+                    delete filtered.sex;
+                }
+
+                const demographicJSONFiltered = JSON.stringify(filtered);
 
                 fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/treemap', {
                     method: 'POST',
@@ -194,34 +195,35 @@
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: demographicJSON
+                    body: demographicJSONFiltered
                 })
                 .then((response) => {
                     try {
                         response.json()
                         .then((json) => {
-                            // console.log(json);
-                            // console.log(JSON.parse(json['body']));
-                            Plotly.newPlot('charts', JSON.parse(json['body']));
+                            charts = document.getElementById('charts')
+                            // Maybe Later: Resizing Plotly Chart depending on number of elements
+                            // charts.style.height = (Math.log(parseFloat(JSON.parse(JSON.parse(json['body'])['data'][0]['labels'].length))+ 1) * 500).toString() + 'px';
+                            
+                            // console.log(charts.getBoundingClientRect().width);
+                            // console.log(charts.getBoundingClientRect().height);
+                            // var layout = {
+                            //     autosize: false,
+                            //     width: charts.getBoundingClientRect().width,
+                            //     height: charts.getBoundingClientRect().height,
+                            //     l: 50, 
+                            //     r: 50,
+                            //     t: 100,
+                            //     b: 100
+                            // }
+                            Plotly.react('charts', JSON.parse(json['body']), {responsive: true});
                         })
                     }
                     catch(err) {
                         alert(err);
                     }
                 });
-
-                // let username = document.getElementById("username");
-                // let password = document.getElementById("password");
-
-                // if (username.value == "" || password.value == "") {
-                // // throw error
-                // } else {
-                // // perform operation with form input
-                // }
             });
         })
     }
-
-    // {"drug": "ACETAMINOPHEN", "ageMin": 5, "ageMax":60, "wtMin": 100, "wtMax":200, "sex": "Male", "outcome":"Any Outcome"}
-
 </script>

@@ -45,7 +45,7 @@
                 </h1>
             </div>
             <div class="menu" id="menu"></div>
-            <div class="forcegraph" id="forcegraph"></div>
+            <div id="forcegraph"></div>
         </div>
     </body>
 </html>
@@ -141,35 +141,30 @@
                 try {
                     const text = response.text()
                     .then((t) => {
-                        if(text === "ERROR"){
-                        console.log("ERROR");
+                        if(t === "ERROR"){
+                            alert("ERROR: Check all fields are filled correctly");
                         }
-                        else{
-                            // JSON.parse(t)
-                            // .then((json) => JSON.parse(json['body']))
-                            // // .then((jsonBody) => jsonBody.json())
-                            // .then((jsonBody) => {
-                            //     const nodes = jsonBody['nodes'];
-                            //     const links = jsonBody['links'];
+                        else {
+                            const jsonBody = JSON.parse(JSON.parse(t)['body']);
+                            console.log(jsonBody);
+                            const nodes = jsonBody['nodes'];
+                            const links = jsonBody['links'];
 
-                            //     console.log(nodes.length);
-                            //     console.log(links.length);
+                            console.log(nodes.length);
+                            console.log(links.length);
 
-                            //     // if(nodes.length > 4000 || links.length > 1000) {
-                            //     if(true){
-                            //         if(confirm("This graph might be too large to render! Are you sure?")){
-                            //             renderGraph(jsonBody);
-                            //         }
-                            //     }
-                            //     else {
-                            //         renderGraph(jsonBody);
-                            //     }
-                            // })
+                            if(nodes.length > 4000 || links.length > 1000) {
+                                if(true){
+                                    if(confirm("This graph might be too large to render! Render in click to expand mode?")){
+                                        renderLargeGraph(jsonBody, drug);
+                                    }
+                                }
+                                else {
+                                    renderGraph(jsonBody, drug);
+                                }  
+                            }                          
                         }
-                        fetch('./data/blocks.json')
-                        .then((response) => response.json())
-                        .then(json => renderGraph(json))
-                    }) 
+                    })
                 }
                 catch(err) {
                     alert(err);
@@ -178,7 +173,7 @@
         });
     })}
 
-    function renderGraph(jsonBody) {
+    function renderGraph(jsonBody, drug) {
         const elem = document.getElementById('forcegraph');
         const myGraph = ForceGraph3D();
 
@@ -207,16 +202,38 @@
         const highlightLinks = new Set();
         let hoverNode = null;
 
+        const selectedNodes = new Set();
+
         myGraph(elem)
-        // .warmupTicks(200)
-        .cooldownTicks(100)
+        .warmupTicks(200)
         .graphData(jsonBody)
-        .nodeColor(node => highlightNodes.has(node) ? node === hoverNode ? 'rgb(255,0,0,1)' : 'rgba(255,160,0,0.8)' : 'rgba(0,255,255,0.6)')
+        .nodeColor(node => {
+            if (node === hoverNode) {
+                return 'red';
+            }
+            else if (highlightNodes.has(node)){
+                return 'purple';
+            }
+            else if (selectedNodes.has(node)){
+                return 'yellow';
+            }
+            else{
+                return 'steelblue';
+            }
+        })
         .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
         .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
         .linkDirectionalParticleWidth(4)
-        .nodeLabel(node => `${node.name}`) //
-        .linkLabel(link => `${link.source}`) // change to actual link name
+        .nodeLabel(node => `${node.name}`) // change to actual node name
+        .linkLabel(link => `${link.value}`) // change to actual link name
+        .nodeVal(node => {
+            if(node.name == drug){
+                return 10;
+            }
+            else {
+                return 1;
+            }
+        })
         .onNodeHover(node => {
           // no state change
           if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
@@ -244,6 +261,195 @@
           }
 
           updateHighlight();
+        })
+        .onNodeRightClick((node, event) => {
+          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
+            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+          } else { // single-selection
+            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+            selectedNodes.clear();
+            !untoggle && selectedNodes.add(node);
+          }
+
+          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
+        
+        })
+        .onNodeClick((node) => {
+          const distance = 40;
+          const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+
+          const newPos = node.x || node.y || node.z
+            ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
+            : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+          myGraph.cameraPosition(
+            newPos, // new position
+            node, // lookAt ({ x, y, z })
+            3000  // ms transition duration
+          );
+        })
+        .onNodeDrag((node, translate) => {
+          if (selectedNodes.has(node)) { // moving a selected node
+            [...selectedNodes]
+              .filter(selNode => selNode !== node) // don't touch node being dragged
+              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = node[coord] + translate[coord])); // translate other nodes by same amount
+          }
+        })
+        .onNodeDragEnd(node => {
+          if (selectedNodes.has(node)) { // finished moving a selected node
+            [...selectedNodes]
+              .filter(selNode => selNode !== node) // don't touch node being dragged
+              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = undefined)); // unfix controlled nodes
+          }
+        })
+        .onBackgroundRightClick(() => {
+            myGraph.zoomToFit(400);
+        });
+        //TODO: label edges and other stuff
+
+        function updateHighlight() {
+            // trigger update of highlighted objects in scene
+            myGraph
+            .nodeColor(myGraph.nodeColor())
+            .linkWidth(myGraph.linkWidth())
+            .linkDirectionalParticles(myGraph.linkDirectionalParticles());
+            //.linkColor(myGraph.)
+        }
+
+        // myGraph.onEngineStop(() => myGraph.zoomToFit(400));
+    }
+
+    function renderLargeGraph(jsonBody, drug) {
+        const elem = document.getElementById('forcegraph');
+        const myGraph = ForceGraph3D();
+
+        // cross-link node objects
+        jsonBody.links.forEach(link => {
+            var a = jsonBody.nodes.filter(node => {
+                return node.id === link.source
+            })[0];
+            var b = jsonBody.nodes.filter(node => {
+                return node.id === link.target
+            })[0];
+            !a.neighbors && (a.neighbors = []);
+            !b.neighbors && (b.neighbors = []);
+            a.neighbors.push(b);
+            b.neighbors.push(a);
+
+            !a.links && (a.links = []);
+            !b.links && (b.links = []);
+            a.links.push(link);
+            b.links.push(link);
+        });
+
+        console.log(jsonBody);
+
+        const highlightNodes = new Set();
+        const highlightLinks = new Set();
+        let hoverNode = null;
+
+        const selectedNodes = new Set();
+
+        myGraph(elem)
+        .warmupTicks(200)
+        .graphData(jsonBody)
+        .nodeColor(node => {
+            if (node === hoverNode) {
+                return 'red';
+            }
+            else if (highlightNodes.has(node)){
+                return 'purple';
+            }
+            else if (selectedNodes.has(node)){
+                return 'yellow';
+            }
+            else{
+                return 'steelblue';
+            }
+        })
+        .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
+        .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
+        .linkDirectionalParticleWidth(4)
+        .nodeLabel(node => `${node.name}`) // change to actual node name
+        .linkLabel(link => `${link.value}`) // change to actual link name
+        .nodeVal(node => {
+            if(node.name == drug){
+                return 10;
+            }
+            else {
+                return 1;
+            }
+        })
+        .onNodeHover(node => {
+          // no state change
+          if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
+
+          highlightNodes.clear();
+          highlightLinks.clear();
+          if (node) {
+            highlightNodes.add(node);
+            node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+            node.links.forEach(link => highlightLinks.add(link));
+          }
+
+          hoverNode = node || null;
+
+          updateHighlight();
+        })
+        .onLinkHover(link => {
+          highlightNodes.clear();
+          highlightLinks.clear();
+
+          if (link) {
+            highlightLinks.add(link);
+            highlightNodes.add(link.source);
+            highlightNodes.add(link.target);
+          }
+
+          updateHighlight();
+        })
+        .onNodeRightClick((node, event) => {
+          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
+            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+          } else { // single-selection
+            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+            selectedNodes.clear();
+            !untoggle && selectedNodes.add(node);
+          }
+
+          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
+        
+        })
+        .onNodeClick((node) => {
+          const distance = 40;
+          const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+
+          const newPos = node.x || node.y || node.z
+            ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
+            : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+          myGraph.cameraPosition(
+            newPos, // new position
+            node, // lookAt ({ x, y, z })
+            3000  // ms transition duration
+          );
+        })
+        .onNodeDrag((node, translate) => {
+          if (selectedNodes.has(node)) { // moving a selected node
+            [...selectedNodes]
+              .filter(selNode => selNode !== node) // don't touch node being dragged
+              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = node[coord] + translate[coord])); // translate other nodes by same amount
+          }
+        })
+        .onNodeDragEnd(node => {
+          if (selectedNodes.has(node)) { // finished moving a selected node
+            [...selectedNodes]
+              .filter(selNode => selNode !== node) // don't touch node being dragged
+              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = undefined)); // unfix controlled nodes
+          }
+        })
+        .onBackgroundRightClick(() => {
+            myGraph.zoomToFit(400);
         });
         //TODO: label edges and other stuff
 

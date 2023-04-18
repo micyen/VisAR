@@ -7,6 +7,8 @@
         </script> -->
         <script src="https://d3js.org/d3.v7.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
         <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script> -->
         <!-- <script src="https://cdn.jsdelivr.net/npm/d3-array@3/+esm"></script> -->
     </head>
@@ -128,7 +130,8 @@
 
         const sliderDiv = parent.append('div')
             .style('width', 'auto')
-            .style('height', '50px')
+            .style('height', '150px')
+            .style('padding-top', '10px')
             .style('text-align', 'center')
             .attr('id', 'sliders');
 
@@ -136,13 +139,81 @@
             .attr('id', 'zoomLabel')
             .html('Zoom');
 
+        zoomLabel.append('div')
+            .style('width', 'auto')
+            .style('height', '0px')
+
         const zoomSlider = zoomLabel.append('input')
             .attr('id', 'zoom')
             .attr('type', 'range')
-            .attr('min', 5)
-            .attr('max', 20)
-            .attr('value', 10)
-            .attr('step', 1);
+            .attr('min', 0.01)
+            .attr('max', 2)
+            .attr('value', 1)
+            .attr('step', 0.01);
+
+        sliderDiv.append('div')
+            .style('width', 'auto')
+            .style('height', '20px')
+
+        const rangeLabel = sliderDiv.append('label')
+            .attr('id', 'rangeLabel')
+            .html('Zoom')
+        
+        rangeLabel.append('div')
+            .style('width', 'auto')
+            .style('height', '10px')
+
+        const rangeSlider = rangeLabel.append('div')
+            .style('width', 'auto')
+            .style('height', '20px')
+            .style('text-align', 'center')
+            .attr('class', 'noUiSlider')
+            .style('margin-left', '200px')
+            .style('margin-right', '200px')
+            .attr('id', 'rangeSlider');
+
+        noUiSlider.create(document.getElementById('rangeSlider'), {
+            range: {
+                'min': 0,
+                'max': 100
+            },
+            step: 10,
+            start: [0, 100],
+            margin: 0, 
+            limit: 100,
+            connect: true,
+            direction: 'ltr',
+            orientation: 'horizontal',
+
+            behavior: 'tap-drag',
+            tooltips: true,
+
+            pips: {
+                mode: 'steps',
+                stepped: true,
+                density: 4
+            }
+        })
+
+        // var valueDivs = [
+        //     document.getElementById('range-value-1'),
+        //     document.getElementById('range-value-2'),
+        //     document.getElementById('range-value-3'),
+        //     document.getElementById('range-value-4')
+        // ]
+
+        // var diffDivs = [
+        //     document.getElementById('range-diff-1'),
+        //     document.getElementById('range-diff-2'),
+        //     document.getElementById('range-diff-3')
+        // ]
+
+        // sliders.noUiSlider.on('update', function (values, handle) {
+        //     valuesDivs[handle].innerHTML = values[handle];
+        //     diffDivs[0].innerHTML = values[1] - values[0];
+        //     diffDivs[1].innerHTML = values[2] - values[1];
+        //     diffDivs[2].innerHTML = values[3] - values[2];
+        // })
 
         // const sliderDivDOM = document.getElementById("sliders");
         // sliderDivDOM.appendChild(zoom);
@@ -248,7 +319,6 @@
             const g2 = inner_svg.append('g')
                 .attr('transform', `translate(${margin.left},0)`);
 
-                
             const yAxis = d3.axisLeft(yScale)
 
             const yAxisG = g2.append('g').call(yAxis)
@@ -326,24 +396,44 @@
                 // .delay((d, i) => {console.log(i); return i * 100});
 
             // TODO: Figure out this zoom function
-            function zoom(svg) {
-                const extent = [[margin.left, margin.top], [width - margin.right, height - margin.top]];
+            // function zoom(svg) {
+            //     const extent = [[margin.left, margin.top], [width - margin.right, height - margin.top]];
 
-                svg.call(d3.zoom()
-                    .scaleExtent([1, 8])
-                    .translateExtent(extent)
-                    .extent(extent)
-                    .on("zoom", zoomed));
+            //     svg.call(d3.zoom()
+            //         .scaleExtent([1, 8])
+            //         .translateExtent(extent)
+            //         .extent(extent)
+            //         .on("zoom", zoomed));
 
-                function zoomed(event) {
-                    yScale.range(range.map(d => event.transform.applyY(d)));
-                    svg.selectAll(".bars rect").attr("y", d => yScale(yValue(d))).attr("height", yScale.bandwidth());
-                    svg.selectAll(".y-axis").call(yAxis);
-                }
+            // TODO: STILL WORKING RIGHT HERE position has to be right
+            function zoomed(value) {
+                const new_range = range.map((d) => { return d * value });
+                console.log(new_range);
+                yScale.range(new_range);
+                const svg = d3.select('#inner_svg')
+                    .attr("height", overHeight * value + "px")
+                svg.selectAll("rect")
+                    .transition()
+                    .duration(1000)
+                    .attr("y", d => yScale(yValue(d)))
+                    .attr("height", yScale.bandwidth());
+                svg.selectAll("y-axis").call(yAxis);
             }
+            //     }
+            // }
+            // const range = d3.range(0, overHeight * (data.length + 1), overHeight);
 
-            zoomSlider.on('change', function(d){
-                
+//             console.log(range);
+
+            // const yScale = d3.scaleBand()
+            //     .domain(data.map(yValue))
+            //     .range(range)
+            //     .paddingInner(0.1)
+            //     .paddingOuter(0.1);
+
+            zoomSlider.on('change', () => {
+                zoomed(zoomSlider.node().value)
+                // console.log(value)
             })
 
             // d3.range(0, overHeight * (data.length + 1), overHeight);
