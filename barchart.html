@@ -67,10 +67,10 @@
 
     function selectDrugInitiate() {
 
-        fetch('https://faers-proj.s3.amazonaws.com/Data/DrugList.txt')
-        .then((response) => response.text())
-        .then((text) => {
-            var druglist = text.split("\n");
+        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/drugList')
+        .then((response) => response.json())
+        .then((json) => {
+            var druglist = JSON.parse(json['body']);
             const parent = document.getElementById("charts");
             const menu = document.getElementById("menu");
             menu.replaceChildren();
@@ -112,6 +112,8 @@
                
         const parent = d3.select("#charts");
         const menu = d3.select("#menu");
+
+        var max = 0;
         
         parent
             .selectAll('*')
@@ -141,7 +143,7 @@
 
         zoomLabel.append('div')
             .style('width', 'auto')
-            .style('height', '0px')
+            .style('height', '0px');
 
         const zoomSlider = zoomLabel.append('input')
             .attr('id', 'zoom')
@@ -153,15 +155,15 @@
 
         sliderDiv.append('div')
             .style('width', 'auto')
-            .style('height', '20px')
+            .style('height', '20px');
 
         const rangeLabel = sliderDiv.append('label')
             .attr('id', 'rangeLabel')
-            .html('Zoom')
+            .html('Select Minimum and Maximum Count to Display');
         
         rangeLabel.append('div')
-            .style('width', 'auto')
-            .style('height', '10px')
+            .style('width', 'auto');
+            // .style('height', '10px')
 
         const rangeSlider = rangeLabel.append('div')
             .style('width', 'auto')
@@ -172,15 +174,17 @@
             .style('margin-right', '200px')
             .attr('id', 'rangeSlider');
 
-        noUiSlider.create(document.getElementById('rangeSlider'), {
+        const noUiRangeSlider = document.getElementById('rangeSlider')
+
+        noUiSlider.create(noUiRangeSlider, {
             range: {
                 'min': 0,
-                'max': 100
+                'max': max
             },
-            step: 10,
-            start: [0, 100],
+            step: 1,
+            start: [0, max],
             margin: 0, 
-            limit: 100,
+            limit: max,
             connect: true,
             direction: 'ltr',
             orientation: 'horizontal',
@@ -188,37 +192,12 @@
             behavior: 'tap-drag',
             tooltips: true,
 
-            pips: {
-                mode: 'steps',
-                stepped: true,
-                density: 4
-            }
+            // pips: {
+            //     mode: 'steps',
+            //     stepped: true,
+            //     density: 4
+            // }
         })
-
-        // var valueDivs = [
-        //     document.getElementById('range-value-1'),
-        //     document.getElementById('range-value-2'),
-        //     document.getElementById('range-value-3'),
-        //     document.getElementById('range-value-4')
-        // ]
-
-        // var diffDivs = [
-        //     document.getElementById('range-diff-1'),
-        //     document.getElementById('range-diff-2'),
-        //     document.getElementById('range-diff-3')
-        // ]
-
-        // sliders.noUiSlider.on('update', function (values, handle) {
-        //     valuesDivs[handle].innerHTML = values[handle];
-        //     diffDivs[0].innerHTML = values[1] - values[0];
-        //     diffDivs[1].innerHTML = values[2] - values[1];
-        //     diffDivs[2].innerHTML = values[3] - values[2];
-        // })
-
-        // const sliderDivDOM = document.getElementById("sliders");
-        // sliderDivDOM.appendChild(zoom);
-
-        // const slider_div.append('')
 
         parent.append("svg")
             .attr("width",  "1200")
@@ -231,8 +210,6 @@
         const svg = d3.select("#svg_chart");
         const width = +svg.attr("width");
         const height = +svg.attr("height");
-        console.log(width);
-        console.log(height);
 
         const render = data => {
 
@@ -246,13 +223,39 @@
                 return 0;
             })
 
+            const countsData = data.map((o) => o.Count)
+            max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
+
+            noUiRangeSlider.noUiSlider.updateOptions({
+                range: {
+                    'min': 0,
+                    'max': max
+                },
+                step: 1,
+                start: [0, max],
+                margin: 0, 
+                limit: max,
+                connect: true,
+                direction: 'ltr',
+                orientation: 'horizontal',
+
+                behavior: 'tap-drag',
+                tooltips: true,
+
+                // pips: {
+                //     mode: 'steps',
+                //     stepped: true,
+                //     density: 4
+                // }
+            }); 
+
             const yValue = d => d['AE'];
             const xValue = d => d['Count'];
 
             const margin = { top: 50, right: 40, bottom: 77, left: 300 };
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
-            const overHeight = data.length * 50 + margin.left + margin.right;
+            var overHeight = data.length * 50 + margin.left + margin.right;
 
             const xScale = d3.scaleLinear()
                 .domain([0, d3.max(data, xValue)])
@@ -264,9 +267,7 @@
             //     .padding(0.1);
 
             // const range = d3.range(0, (data.length + 1) * 15000, 15000);
-            const range = d3.range(0, overHeight * (data.length + 1), overHeight);
-
-            console.log(range);
+            var range = d3.range(0, overHeight * (data.length + 1), overHeight);
 
             const yScale = d3.scaleBand()
                 .domain(data.map(yValue))
@@ -275,14 +276,19 @@
                 .paddingOuter(0.1);
 
             const g = svg.append('g')
+                .attr('id', 'g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
+            console.log(`translate(${margin.left},${margin.top})`)
 
             const xAxis = d3.axisBottom(xScale)
                 .tickSize(-innerHeight)
                 .ticks(5);
 
-            const xAxisG = g.append('g').call(xAxis)
+            const xAxisG = g.append('g')
+                .attr('id', 'xAxis')
+                .call(xAxis)
                 .attr('transform', `translate(0,${innerHeight})`);
+            console.log(`translate(0,${innerHeight})`)
 
             g.append('text')
                 .attr('class', 'title')
@@ -308,8 +314,6 @@
                 .style('height', innerHeight + "px")
                 .attr('id', 'scroll');
 
-            console.log("overHeight " + overHeight);
-            console.log("innerHeight " + innerHeight);
             const inner_svg = body.append('svg')
                 .attr("width",  "1200px")
                 .attr("height", overHeight + "px")
@@ -317,11 +321,14 @@
                 .style('display', 'block');
 
             const g2 = inner_svg.append('g')
+                .attr('id', 'g2')
                 .attr('transform', `translate(${margin.left},0)`);
 
             const yAxis = d3.axisLeft(yScale)
 
-            const yAxisG = g2.append('g').call(yAxis)
+            const yAxisG = g2.append('g')
+                .attr('id', 'yAxis')
+                .call(yAxis)
                 .selectAll('.domain, .tick line').remove();
             
             var tooltip = d3.select('#main')
@@ -393,61 +400,101 @@
                 .duration(1000)
                 .attr('x', d => 0)
                 .attr('width', d => xScale(xValue(d)))
-                // .delay((d, i) => {console.log(i); return i * 100});
 
-            // TODO: Figure out this zoom function
-            // function zoom(svg) {
-            //     const extent = [[margin.left, margin.top], [width - margin.right, height - margin.top]];
-
-            //     svg.call(d3.zoom()
-            //         .scaleExtent([1, 8])
-            //         .translateExtent(extent)
-            //         .extent(extent)
-            //         .on("zoom", zoomed));
-
-            // TODO: STILL WORKING RIGHT HERE position has to be right
+            // TODO: possibly remove axis labels if too small
             function zoomed(value) {
                 const new_range = range.map((d) => { return d * value });
                 console.log(new_range);
                 yScale.range(new_range);
-                const svg = d3.select('#inner_svg')
+                const new_svg = d3.select('#inner_svg')
                     .attr("height", overHeight * value + "px")
-                svg.selectAll("rect")
+                new_svg.selectAll("rect")
                     .transition()
                     .duration(1000)
                     .attr("y", d => yScale(yValue(d)))
                     .attr("height", yScale.bandwidth());
-                svg.selectAll("y-axis").call(yAxis);
+
+                //TODO: remove labels if value is bigger than a certain value?
+                if(value > 0.5){
+                    new_svg.selectAll("#yAxis").call(yAxis);
+                }
+                else {
+                    new_svg.selectAll("#yAxis").call(yAxis);
+                }
             }
-            //     }
-            // }
-            // const range = d3.range(0, overHeight * (data.length + 1), overHeight);
-
-//             console.log(range);
-
-            // const yScale = d3.scaleBand()
-            //     .domain(data.map(yValue))
-            //     .range(range)
-            //     .paddingInner(0.1)
-            //     .paddingOuter(0.1);
 
             zoomSlider.on('change', () => {
                 zoomed(zoomSlider.node().value)
-                // console.log(value)
             })
 
-            // d3.range(0, overHeight * (data.length + 1), overHeight);
-            // var zoom = d3.zoom()
-            //   .scaleExtent([1, 10])
-            //   .translateExtent([[0, 0], [width, height]])
-            //   .on("zoom", zoomed);
+            function changeRange(values, handle, unencoded, tap, positions, noUiSlider) {
+            // values: Current slider values (array);
+            // handle: Handle that caused the event (number);
+            // unencoded: Slider values without formatting (array);
+            // tap: Event was caused by the user tapping the slider (boolean);
+            // positions: Left offset of the handles (array);
+            // noUiSlider: slider public Api (noUiSlider);
 
+            //TODO: display filtered data
+                const filterRange = values;
+                var filteredData = data.filter(function(o) {
+                    return o.Count >= filterRange[0] && o.Count <= filterRange[1];
+                });
+
+                overHeight = filteredData.length * 50 + margin.left + margin.right;
+                range = d3.range(0, overHeight * (data.length + 1), overHeight);
+
+                xScale
+                    .domain([0, d3.max(filteredData, xValue)])
+                    .range([0, innerWidth]);
+                
+                yScale
+                    .domain(filteredData.map(yValue))
+                    .range(range)
+
+                const inner_svg_new = d3.select('#inner_svg')
+                    .attr("height", overHeight + "px")
+                
+                d3.select('#xAxis').call(xAxis);
+                const g2_new = d3.select('#g2');
+
+                g2_new.selectAll("#yAxis").call(yAxis);
+
+                g2_new.selectAll('rect')
+                    .remove()
+
+                g2_new.selectAll('mybar')
+                    .remove()
+                    .data(filteredData)
+                    .join('rect')
+                        .attr('y', d => yScale(yValue(d)))
+                        .attr('height', d => yScale.bandwidth())
+                        .attr('x', d => 0) 
+                        .attr('width', d => 0)
+                        .attr('id', d => d['AE'])
+                        .style("cursor", "pointer")
+                        .attr("fill", function(d,i) {
+                            return color(i);
+                        })
+                    .on("mouseover", (_, d) => {mouseover(d)})
+                    .on("mousemove", (e, d) => {mousemove(e, d)})
+                    .on("mouseleave", (_, d) => {mouseleave(d)})
+                    .on("click", (_, d) => {mouseclick(d)});
+
+                g2_new.selectAll('rect')
+                    .transition()
+                    .duration(1000)
+                    .attr('x', d => 0)
+                    .attr('width', d => xScale(xValue(d)))
+
+                zoomSlider.node().value = 1
+
+            }
+            noUiRangeSlider.noUiSlider.on('change', changeRange);
         };
         
         d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
         // d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
-            console.log(data);
-            console.log(drug)
             var aggr_data = {}
             var aggr_data_list = []
             function aggregate(_callback){
@@ -462,12 +509,17 @@
                     }
                 });
                 aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
+                aggr_data_list = aggr_data_list.filter(d => {
+                    // Number.isNaN(o.Count)
+                    return d.AE !== 'undefined';
+                })
+                console.log(aggr_data_list)
                 _callback();
             }
 
             function aggregate2(){
                 aggregate(function() {
-                    console.log(aggr_data_list);
+                    // console.log(aggr_data_list);
                     render(aggr_data_list);
                 })
             }
@@ -487,6 +539,8 @@
             
         const parent = d3.select("#charts");
         const menu = d3.select("#menu");
+
+        var max = 0;
         
         parent
             .selectAll('*')
@@ -503,6 +557,74 @@
             .text("Back")
             // .style("position", "float")
 
+        const sliderDiv = parent.append('div')
+            .style('width', 'auto')
+            .style('height', '150px')
+            .style('padding-top', '10px')
+            .style('text-align', 'center')
+            .attr('id', 'sliders');
+
+        const zoomLabel = sliderDiv.append('label')
+            .attr('id', 'zoomLabel')
+            .html('Zoom');
+
+        zoomLabel.append('div')
+            .style('width', 'auto')
+            .style('height', '0px');
+
+        const zoomSlider = zoomLabel.append('input')
+            .attr('id', 'zoom')
+            .attr('type', 'range')
+            .attr('min', 0.01)
+            .attr('max', 2)
+            .attr('value', 1)
+            .attr('step', 0.01);
+
+        sliderDiv.append('div')
+            .style('width', 'auto')
+            .style('height', '20px');
+
+        const rangeLabel = sliderDiv.append('label')
+            .attr('id', 'rangeLabel')
+            .html('Select Minimum and Maximum Count to Display');
+        
+        rangeLabel.append('div')
+            .style('width', 'auto');
+            // .style('height', '10px')
+
+        const rangeSlider = rangeLabel.append('div')
+            .style('width', 'auto')
+            .style('height', '20px')
+            .style('text-align', 'center')
+            .attr('class', 'noUiSlider')
+            .style('margin-left', '200px')
+            .style('margin-right', '200px')
+            .attr('id', 'rangeSlider');
+
+        const noUiRangeSlider = document.getElementById('rangeSlider')
+
+        noUiSlider.create(noUiRangeSlider, {
+            range: {
+                'min': 0,
+                'max': max
+            },
+            step: 1,
+            start: [0, max],
+            margin: 0, 
+            limit: max,
+            connect: true,
+            direction: 'ltr',
+            orientation: 'horizontal',
+
+            behavior: 'tap-drag',
+            tooltips: true,
+
+            // pips: {
+            //     mode: 'steps',
+            //     stepped: true,
+            //     density: 
+            // }
+        })
         parent.append("svg")
             .attr("width",  "1200")
             .attr("height", "600")
@@ -512,16 +634,46 @@
             .style('z-index', 1);
 
         const svg = d3.select("#svg_chart");
-        // const svg = d3.select('svg');
-
-        // const width = parseInt(+svg.attr("width"), 10);
-        // const height = parseInt(+svg.attr("height"), 10);
         const width = +svg.attr("width");
         const height = +svg.attr("height");
-        console.log(width);
-        console.log(height);
 
         const render = data => {
+
+            data.sort(function (a, b) {
+                if (a.Count < b.Count) {
+                    return 1;
+                }
+                if (a.Count > b.Count) {
+                    return -1;
+                }
+                return 0;
+            })
+
+            const countsData = data.map((o) => o.Count)
+            max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
+
+            noUiRangeSlider.noUiSlider.updateOptions({
+                range: {
+                    'min': 0,
+                    'max': max
+                },
+                step: 1,
+                start: [0, max],
+                margin: 0, 
+                limit: max,
+                connect: true,
+                direction: 'ltr',
+                orientation: 'horizontal',
+
+                behavior: 'tap-drag',
+                tooltips: true,
+
+                // pips: {
+                //     mode: 'steps',
+                //     stepped: true,
+                //     density: 4
+                // }
+            }); 
 
             const yValue = d => d['manufacturer'];
             const xValue = d => d['Count'];
@@ -529,18 +681,13 @@
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
 
-            const overHeight = data.length * 10 + margin.left + margin.right;
-
-            console.log("overHeight " + overHeight);
-            console.log("innerHeight " + innerHeight);
+            var overHeight = data.length * 50 + margin.left + margin.right;
 
             const xScale = d3.scaleLinear()
                 .domain([0, d3.max(data, xValue)])
                 .range([0, innerWidth]);
 
-            // const range = d3.range(0, (data.length + 1) * 15000, 15000);
-            const range = d3.range(0, overHeight * (data.length + 1), overHeight);
-            console.log(range);
+            var range = d3.range(0, overHeight * (data.length + 1), overHeight);
 
             const yScale = d3.scaleBand()
                 .domain(data.map(yValue))
@@ -549,6 +696,7 @@
                 .paddingOuter(0.1);
 
             const g = svg.append('g')
+                .attr('id', 'g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
 
             const xAxis = d3.axisBottom(xScale)
@@ -589,11 +737,14 @@
                 .style('display', 'block');
 
             const g2 = inner_svg.append('g')
+                .attr('id', 'g2')
                 .attr('transform', `translate(${margin.left},0)`);
 
             const yAxis = d3.axisLeft(yScale)
 
-            const yAxisG = g2.append('g').call(yAxis)
+            const yAxisG = g2.append('g')
+                .attr('id', 'yAxis')
+                .call(yAxis)
                 .selectAll('.domain, .tick line').remove();
             
             var tooltip = d3.select('#main')
@@ -648,7 +799,96 @@
                 .transition()
                 .duration(1000)
                 .attr('x', d => 0)
-                .attr('width', d => xScale(xValue(d)))
+                .attr('width', d => xScale(xValue(d)));
+
+            // TODO: possibly remove axis labels if too small
+            function zoomed(value) {
+                const new_range = range.map((d) => { return d * value });
+                console.log(new_range);
+                yScale.range(new_range);
+                const new_svg = d3.select('#inner_svg')
+                    .attr("height", overHeight * value + "px")
+                new_svg.selectAll("rect")
+                    .transition()
+                    .duration(1000)
+                    .attr("y", d => yScale(yValue(d)))
+                    .attr("height", yScale.bandwidth());
+
+                //TODO: remove labels if value is bigger than a certain value?
+                if(value > 0.5){
+                    new_svg.selectAll("#yAxis").call(yAxis);
+                }
+                else {
+                    new_svg.selectAll("#yAxis").call(yAxis);
+                }
+            }
+
+            zoomSlider.on('change', () => {
+                zoomed(zoomSlider.node().value)
+            });
+
+            function changeRange(values, handle, unencoded, tap, positions, noUiSlider) {
+            // values: Current slider values (array);
+            // handle: Handle that caused the event (number);
+            // unencoded: Slider values without formatting (array);
+            // tap: Event was caused by the user tapping the slider (boolean);
+            // positions: Left offset of the handles (array);
+            // noUiSlider: slider public Api (noUiSlider);
+
+            //TODO: display filtered data
+                const filterRange = values;
+                var filteredData = data.filter(function(o) {
+                    return o.Count >= filterRange[0] && o.Count <= filterRange[1];
+                });
+
+                overHeight = filteredData.length * 50 + margin.left + margin.right;
+                range = d3.range(0, overHeight * (data.length + 1), overHeight);
+
+                xScale
+                    .domain([0, d3.max(filteredData, xValue)])
+                    .range([0, innerWidth]);
+                
+                yScale
+                    .domain(filteredData.map(yValue))
+                    .range(range)
+
+                const inner_svg_new = d3.select('#inner_svg')
+                    .attr("height", overHeight + "px")
+                
+                d3.select('#xAxis').call(xAxis);
+                const g2_new = d3.select('#g2');
+
+                g2_new.selectAll("#yAxis").call(yAxis);
+
+                g2_new.selectAll('rect')
+                    .remove()
+
+                g2_new.selectAll('mybar')
+                    .remove()
+                    .data(filteredData)
+                    .join('rect')
+                        .attr('y', d => yScale(yValue(d)))
+                        .attr('height', d => yScale.bandwidth())
+                        .attr('x', d => 0) 
+                        .attr('width', d => 0)
+                        .attr('id', d => d['AE'])
+                        .attr("fill", function(d,i) {
+                            return color(i);
+                        })
+                    .on("mouseover", (_, d) => {mouseover(d)})
+                    .on("mousemove", (e, d) => {mousemove(e, d)})
+                    .on("mouseleave", (_, d) => {mouseleave(d)})
+                    .on("click", (_, d) => {mouseclick(d)});
+
+                g2_new.selectAll('rect')
+                    .transition()
+                    .duration(1000)
+                    .attr('x', d => 0)
+                    .attr('width', d => xScale(xValue(d)));
+
+                zoomSlider.node().value = 1
+            }
+            noUiRangeSlider.noUiSlider.on('change', changeRange);
         };
 
 
@@ -661,8 +901,6 @@
             filteredData.forEach(d => {
                 d.Count = +d.Count;
             });
-            console.log(filteredData);
-            console.log("here is the filtered data")
             render(filteredData.sort(function (a, b) {
                 if (a.manufacturer < b.manufacturer) {
                     return -1;

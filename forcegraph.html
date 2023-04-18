@@ -158,11 +158,11 @@
                                     if(confirm("This graph might be too large to render! Render in click to expand mode?")){
                                         renderLargeGraph(jsonBody, drug);
                                     }
-                                }
-                                else {
-                                    renderGraph(jsonBody, drug);
-                                }  
-                            }                          
+                                } 
+                            }         
+                            else{
+                                renderGraph(jsonBody, drug);                 
+                            }
                         }
                     })
                 }
