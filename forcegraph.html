@@ -203,11 +203,12 @@
         let hoverNode = null;
 
         const selectedNodes = new Set();
+        console.log(drug)
 
         myGraph(elem)
         .warmupTicks(200)
         .graphData(jsonBody)
-        .nodeColor(node => {
+        .nodeColor(node => { 
             if (node === hoverNode) {
                 return 'red';
             }
@@ -217,7 +218,10 @@
             else if (selectedNodes.has(node)){
                 return 'yellow';
             }
-            else{
+            else if (node.name === drug) {
+                return 'green';
+            }
+            else {
                 return 'steelblue';
             }
         })
@@ -262,18 +266,6 @@
 
           updateHighlight();
         })
-        .onNodeRightClick((node, event) => {
-          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
-            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
-          } else { // single-selection
-            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
-            selectedNodes.clear();
-            !untoggle && selectedNodes.add(node);
-          }
-
-          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
-        
-        })
         .onNodeClick((node) => {
           const distance = 40;
           const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
@@ -287,6 +279,18 @@
             node, // lookAt ({ x, y, z })
             3000  // ms transition duration
           );
+        })
+        .onNodeRightClick((node, event) => {
+          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
+            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+          } else { // single-selection
+            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+            selectedNodes.clear();
+            !untoggle && selectedNodes.add(node);
+          }
+
+          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
+        
         })
         .onNodeDrag((node, translate) => {
           if (selectedNodes.has(node)) { // moving a selected node
@@ -305,7 +309,6 @@
         .onBackgroundRightClick(() => {
             myGraph.zoomToFit(400);
         });
-        //TODO: label edges and other stuff
 
         function updateHighlight() {
             // trigger update of highlighted objects in scene
@@ -315,8 +318,6 @@
             .linkDirectionalParticles(myGraph.linkDirectionalParticles());
             //.linkColor(myGraph.)
         }
-
-        // myGraph.onEngineStop(() => myGraph.zoomToFit(400));
     }
 
     function renderLargeGraph(jsonBody, drug) {
@@ -350,10 +351,11 @@
 
         const selectedNodes = new Set();
 
+        console.log(drug);
         myGraph(elem)
         .warmupTicks(200)
         .graphData(jsonBody)
-        .nodeColor(node => {
+        .nodeColor(node => { 
             if (node === hoverNode) {
                 return 'red';
             }
@@ -363,7 +365,10 @@
             else if (selectedNodes.has(node)){
                 return 'yellow';
             }
-            else{
+            else if (node.name === drug) {
+                return 'green';
+            }
+            else {
                 return 'steelblue';
             }
         })
@@ -408,18 +413,6 @@
 
           updateHighlight();
         })
-        .onNodeRightClick((node, event) => {
-          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
-            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
-          } else { // single-selection
-            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
-            selectedNodes.clear();
-            !untoggle && selectedNodes.add(node);
-          }
-
-          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
-        
-        })
         .onNodeClick((node) => {
           const distance = 40;
           const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
@@ -433,6 +426,18 @@
             node, // lookAt ({ x, y, z })
             3000  // ms transition duration
           );
+        })
+        .onNodeRightClick((node, event) => {
+          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
+            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
+          } else { // single-selection
+            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
+            selectedNodes.clear();
+            !untoggle && selectedNodes.add(node);
+          }
+
+          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
+        
         })
         .onNodeDrag((node, translate) => {
           if (selectedNodes.has(node)) { // moving a selected node
@@ -451,7 +456,6 @@
         .onBackgroundRightClick(() => {
             myGraph.zoomToFit(400);
         });
-        //TODO: label edges and other stuff
 
         function updateHighlight() {
             // trigger update of highlighted objects in scene
@@ -462,6 +466,5 @@
             //.linkColor(myGraph.)
         }
 
-        // myGraph.onEngineStop(() => myGraph.zoomToFit(400));
     }
 </script>

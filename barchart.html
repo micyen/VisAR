@@ -130,7 +130,7 @@
             .text("Back")
             // .style("position", "float")
 
-        const sliderDiv = parent.append('div')
+        const sliderDiv = menu.append('div')
             .style('width', 'auto')
             .style('height', '150px')
             .style('padding-top', '10px')
@@ -174,7 +174,7 @@
             .style('margin-right', '200px')
             .attr('id', 'rangeSlider');
 
-        const noUiRangeSlider = document.getElementById('rangeSlider')
+        const noUiRangeSlider = document.getElementById('rangeSlider');
 
         noUiSlider.create(noUiRangeSlider, {
             range: {
@@ -248,6 +248,125 @@
                 //     density: 4
                 // }
             }); 
+
+            const sortData = (type) => {
+
+                if (type === 'descending'){
+                    data = data.sort(function (a, b) {
+                        if (a.Count < b.Count) {
+                            return 1;
+                        }
+                        if (a.Count > b.Count) {
+                            return -1;
+                        }
+                        return 0;
+                    })
+                }
+                else {
+                    data = data.sort(function (a, b) {
+                        if (a.Count > b.Count) {
+                            return 1;
+                        }
+                        if (a.Count < b.Count) {
+                            return -1;
+                        }
+                        return 0;
+                    })
+                }
+
+                const filterRange = noUiRangeSlider.noUiSlider.get();
+                
+                var filteredData = data.filter(function(o) {
+                    return o.Count >= filterRange[0] && o.Count <= filterRange[1];
+                });   
+
+
+                overHeight = filteredData.length * 50 + margin.left + margin.right;
+                range = d3.range(0, overHeight * (filteredData.length + 1), overHeight);
+
+                xScale
+                    .domain([0, d3.max(filteredData, xValue)])
+                    .range([0, innerWidth]);
+
+                yScale
+                    .domain(filteredData.map(yValue))
+                    .range(range)
+
+                const inner_svg_new = d3.select('#inner_svg')
+                    .attr("height", overHeight + "px")
+
+                d3.select('#xAxis').call(xAxis);
+                const g2_new = d3.select('#g2');
+
+                g2_new.selectAll("#yAxis").call(yAxis);
+
+                g2_new.selectAll('rect')
+                    .remove()
+
+                g2_new.selectAll('mybar')
+                    .remove()
+                    .data(filteredData)
+                    .join('rect')
+                        .attr('y', d => yScale(yValue(d)))
+                        .attr('height', d => yScale.bandwidth())
+                        .attr('x', d => 0) 
+                        .attr('width', d => 0)
+                        .attr('id', d => d["manufacturer"])
+                        .attr("fill", function(d,i) {
+                            return color(i);
+                        })
+                    .on("mouseover", (_, d) => {mouseover(d)})
+                    .on("mousemove", (e, d) => {mousemove(e, d)})
+                    .on("mouseleave", (_, d) => {mouseleave(d)})
+                    .on("click", (_, d) => {mouseclick(d)});
+
+                g2_new.selectAll('rect')
+                    .transition()
+                    .duration(1000)
+                    .attr('x', d => 0)
+                    .attr('width', d => xScale(xValue(d)));
+
+                zoomSlider.node().value = 1
+            }
+
+            const maxRadio = document.createElement('input');
+            maxRadio.type = 'radio';
+            maxRadio.id = 'descending';
+            maxRadio.name = 'sortBy';
+            maxRadio.value = 'descending';
+            maxRadio.checked = 'checked';
+            maxRadio.addEventListener("change", (event) => {
+                sortData('descending')
+            }) 
+
+            const maxRadioLabel = document.createElement("label");
+            maxRadioLabel.innerText = 'Sort Descending Count';
+            maxRadioLabel.for = 'maxRadio';
+            maxRadioLabel.className = 'radioLabel';
+
+            const minRadio = document.createElement('input');
+            minRadio.type = 'radio';
+            minRadio.id = 'ascending';
+            minRadio.name = 'sortBy';
+            minRadio.value = 'ascending';
+            minRadio.addEventListener("change", (event) => {
+                sortData('ascending')
+            }) 
+            const minRadioLabel = document.createElement("label");
+            minRadioLabel.innerText = 'Sort Ascending Count';
+            minRadioLabel.for = 'minRadio';
+            minRadioLabel.className = 'radioLabel';
+
+            const radioGroupSort = document.createElement("div");
+            radioGroupSort.className = 'radioGroup'
+
+            const menuDOM = document.getElementById('menu')
+
+            radioGroupSort.append(maxRadioLabel);
+            maxRadioLabel.append(maxRadio);
+            radioGroupSort.append(minRadioLabel);
+            minRadioLabel.append(minRadio);
+            menuDOM.append(radioGroupSort);
 
             const yValue = d => d['AE'];
             const xValue = d => d['Count'];
@@ -493,42 +612,67 @@
             noUiRangeSlider.noUiSlider.on('change', changeRange);
         };
         
-        d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
-        // d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
-            var aggr_data = {}
-            var aggr_data_list = []
-            function aggregate(_callback){
-                Object.entries(data).forEach((entry) => {
-                    const ae = entry[1]['Adverse Event'];
-                    const count = entry[1]['Count'];
-                    if (ae in aggr_data) {
-                        aggr_data[ae] += +count;
-                    }
-                    else {
-                        aggr_data[ae] = +count;
-                    }
-                });
-                aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
-                aggr_data_list = aggr_data_list.filter(d => {
-                    // Number.isNaN(o.Count)
-                    return d.AE !== 'undefined';
-                })
-                console.log(aggr_data_list)
-                _callback();
-            }
+         // d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
+        // d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
+        //     var aggr_data = {}
+        //     var aggr_data_list = []
+        //     function aggregate(_callback){
+        //         Object.entries(data).forEach((entry) => {
+        //             const ae = entry[1]['Adverse Event'];
+        //             const count = entry[1]['Count'];
+        //             if (ae in aggr_data) {
+        //                 aggr_data[ae] += +count;
+        //             }
+        //             else {
+        //                 aggr_data[ae] = +count;
+        //             }
+        //         });
+        //         aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
+        //         aggr_data_list = aggr_data_list.filter(d => {
+        //             // Number.isNaN(o.Count)
+        //             return d.AE !== 'undefined';
+        //         })
+        //         console.log(aggr_data_list)
+        //         _callback();
+        //     }
 
-            function aggregate2(){
-                aggregate(function() {
-                    // console.log(aggr_data_list);
-                    render(aggr_data_list);
-                })
-            }
+        //     function aggregate2(){
+        //         aggregate(function() {
+        //             console.log(aggr_data_list);
+        //             render(aggr_data_list);
+        //         })
+        //     }
 
-            aggregate2();
-            // filteredData.forEach(d => {
-            //     d.Count = +d.Count;
-            // });
-            // render(aggr_data);
+        //     aggregate2();
+        //     // filteredData.forEach(d => {
+        //     //     d.Count = +d.Count;
+        //     // });
+        //     // render(aggr_data);
+        // });
+
+        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/barChartMain', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({"drug": drug})
+        })
+        .then((response) => response.json())
+        .then((json) => {
+            const data = JSON.parse(json['body'])
+            data.forEach(d => {
+                d.Count = +d.Count;
+            });
+            render(data.sort(function (a, b) {
+                if (a.manufacturer < b.manufacturer) {
+                    return -1;
+                }
+                if (a.manufacturer > b.manufacturer) {
+                    return 1;
+                }
+                return 0;
+            }));
         });
     }
 
@@ -541,6 +685,7 @@
         const menu = d3.select("#menu");
 
         var max = 0;
+        var countByPercentageBool = false;
         
         parent
             .selectAll('*')
@@ -557,7 +702,7 @@
             .text("Back")
             // .style("position", "float")
 
-        const sliderDiv = parent.append('div')
+        const sliderDiv = menu.append('div')
             .style('width', 'auto')
             .style('height', '150px')
             .style('padding-top', '10px')
@@ -601,7 +746,7 @@
             .style('margin-right', '200px')
             .attr('id', 'rangeSlider');
 
-        const noUiRangeSlider = document.getElementById('rangeSlider')
+        const noUiRangeSlider = document.getElementById('rangeSlider');
 
         noUiSlider.create(noUiRangeSlider, {
             range: {
@@ -655,7 +800,7 @@
             noUiRangeSlider.noUiSlider.updateOptions({
                 range: {
                     'min': 0,
-                    'max': max
+                    'max': Math.ceil(max)
                 },
                 step: 1,
                 start: [0, max],
@@ -673,10 +818,282 @@
                 //     stepped: true,
                 //     density: 4
                 // }
-            }); 
+            });
+
+            const sortData = (type) => {
+
+                if (type === 'descending'){
+                    if(countByPercentageBool){
+                        data = data.sort(function (a, b) {
+                            if (a['Adj Count'] < b['Adj Count']) {
+                                return 1;
+                            }
+                            if (a['Adj Count'] > b['Adj Count']) {
+                                return -1;
+                            }
+                            return 0;
+                        })
+                    }
+                    else {
+                        data = data.sort(function (a, b) {
+                            if (a.Count < b.Count) {
+                                return 1;
+                            }
+                            if (a.Count > b.Count) {
+                                return -1;
+                            }
+                            return 0;
+                        })
+                    }   
+                }
+                else {
+                    if(countByPercentageBool){
+                        data = data.sort(function (a, b) {
+                            if (a['Adj Count'] > b['Adj Count']) {
+                                return 1;
+                            }
+                            if (a['Adj Count'] < b['Adj Count']) {
+                                return -1;
+                            }
+                            return 0;
+                        })
+                    }
+                    else {
+                        data = data.sort(function (a, b) {
+                            if (a.Count > b.Count) {
+                                return 1;
+                            }
+                            if (a.Count < b.Count) {
+                                return -1;
+                            }
+                            return 0;
+                        })
+                    } 
+                }
+
+                const filterRange = noUiRangeSlider.noUiSlider.get();
+                if(countByPercentageBool){
+                    var filteredData = data.filter(function(o) {
+                        return o['Adj Count'] >= filterRange[0] && o['Adj Count'] <= filterRange[1];
+                    });
+                }
+                else{
+                    var filteredData = data.filter(function(o) {
+                        return o.Count >= filterRange[0] && o.Count <= filterRange[1];
+                    });   
+                }
+
+                overHeight = filteredData.length * 50 + margin.left + margin.right;
+                range = d3.range(0, overHeight * (filteredData.length + 1), overHeight);
+
+                xScale
+                    .domain([0, d3.max(filteredData, xValue)])
+                    .range([0, innerWidth]);
+                
+                yScale
+                    .domain(filteredData.map(yValue))
+                    .range(range)
+
+                const inner_svg_new = d3.select('#inner_svg')
+                    .attr("height", overHeight + "px")
+                
+                d3.select('#xAxis').call(xAxis);
+                const g2_new = d3.select('#g2');
+
+                g2_new.selectAll("#yAxis").call(yAxis);
+
+                g2_new.selectAll('rect')
+                    .remove()
+
+                g2_new.selectAll('mybar')
+                    .remove()
+                    .data(filteredData)
+                    .join('rect')
+                        .attr('y', d => yScale(yValue(d)))
+                        .attr('height', d => yScale.bandwidth())
+                        .attr('x', d => 0) 
+                        .attr('width', d => 0)
+                        .attr('id', d => d["manufacturer"])
+                        .attr("fill", function(d,i) {
+                            return color(i);
+                        })
+                    .on("mouseover", (_, d) => {mouseover(d)})
+                    .on("mousemove", (e, d) => {mousemove(e, d)})
+                    .on("mouseleave", (_, d) => {mouseleave(d)})
+                    .on("click", (_, d) => {mouseclick(d)});
+
+                g2_new.selectAll('rect')
+                    .transition()
+                    .duration(1000)
+                    .attr('x', d => 0)
+                    .attr('width', d => xScale(xValue(d)));
+
+                zoomSlider.node().value = 1
+            }
+
+            const countByElem = () => {
+                countByPercentageBool = false;
+                var ele = document.getElementsByName('sortBy');
+                var checked;
+          
+                for(var i = 0; i < ele.length; i++) {
+                    if(ele[i].checked){
+                        checked = ele[i].value
+                    }
+                }
+                console.log(checked)
+
+                const countsData = data.map((o) => o.Count)
+                max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
+
+                noUiRangeSlider.noUiSlider.updateOptions({
+                    range: {
+                        'min': 0,
+                        'max': Math.ceil(max)
+                    },
+                    step: 1,
+                    start: [0, max],
+                    margin: 0, 
+                    limit: max,
+                    connect: true,
+                    direction: 'ltr',
+                    orientation: 'horizontal',
+
+                    behavior: 'tap-drag',
+                    tooltips: true,
+
+                    // pips: {
+                    //     mode: 'steps',
+                    //     stepped: true,
+                    //     density: 4
+                    // }
+                }); 
+                sortData(checked)
+            }
+
+            const adjustedCount = () => {
+                countByPercentageBool = true;
+                var ele = document.getElementsByName('sortBy');
+                var checked;
+          
+                for(var i = 0; i < ele.length; i++) {
+                    if(ele[i].checked){
+                        checked = ele[i].value
+                    }
+                }
+                console.log(checked)
+                const countsData = data.map((o) => o['Adj Count'])
+                max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
+
+                noUiRangeSlider.noUiSlider.updateOptions({
+                    range: {
+                        'min': 0,
+                        'max': Math.ceil(max)
+                    },
+                    step: 1,
+                    start: [0, max],
+                    margin: 0, 
+                    limit: max,
+                    connect: true,
+                    direction: 'ltr',
+                    orientation: 'horizontal',
+
+                    behavior: 'tap-drag',
+                    tooltips: true,
+
+                    // pips: {
+                    //     mode: 'steps',
+                    //     stepped: true,
+                    //     density: 4
+                    // }
+                }); 
+                sortData(checked)
+            }
+
+            const maxRadio = document.createElement('input');
+            maxRadio.type = 'radio';
+            maxRadio.id = 'descending';
+            maxRadio.name = 'sortBy';
+            maxRadio.value = 'descending';
+            maxRadio.checked = 'checked';
+            maxRadio.addEventListener("change", (event) => {
+                sortData('descending')
+            }) 
+
+            const maxRadioLabel = document.createElement("label");
+            maxRadioLabel.innerText = 'Sort Descending Count';
+            maxRadioLabel.for = 'maxRadio';
+            maxRadioLabel.className = 'radioLabel';
+
+            const minRadio = document.createElement('input');
+            minRadio.type = 'radio';
+            minRadio.id = 'ascending';
+            minRadio.name = 'sortBy';
+            minRadio.value = 'ascending';
+            minRadio.addEventListener("change", (event) => {
+                sortData('ascending')
+            }) 
+            const minRadioLabel = document.createElement("label");
+            minRadioLabel.innerText = 'Sort Ascending Count';
+            minRadioLabel.for = 'minRadio';
+            minRadioLabel.className = 'radioLabel';
+
+            const radioGroupSort = document.createElement("div");
+            radioGroupSort.className = 'radioGroup'
+
+            const menuDOM = document.getElementById('menu')
+
+            radioGroupSort.append(maxRadioLabel);
+            maxRadioLabel.append(maxRadio);
+            radioGroupSort.append(minRadioLabel);
+            minRadioLabel.append(minRadio);
+            menuDOM.append(radioGroupSort);
+
+            const countElem = document.createElement('input');
+            countElem.type = 'radio';
+            countElem.id = 'absoluteCount';
+            countElem.name = 'count';
+            countElem.value = 'absoluteCount';
+            countElem.checked = 'checked';
+            countElem.addEventListener("change", (event) => {
+                countByElem()
+            }) 
+            const countLabel = document.createElement("label");
+            countLabel.innerText = 'Use Absolute Count';
+            countLabel.for = 'absoluteCount';
+            countLabel.className = 'radioLabel';
+
+            const countByPercentage = document.createElement('input');
+            countByPercentage.type = 'radio';
+            countByPercentage.id = 'countByPercentage';
+            countByPercentage.name = 'count';
+            countByPercentage.value = 'countByPercentage';
+            countByPercentage.addEventListener("change", (event) => {
+                adjustedCount()
+            }) 
+            const countByPercentageLabel = document.createElement("label");
+            countByPercentageLabel.innerText = 'Count by Percentage';
+            countByPercentageLabel.for = 'countByPercentage';
+            countByPercentageLabel.className = 'radioLabel';
+
+            const radioGroupCount = document.createElement("div");
+            radioGroupCount.className = 'radioGroup'
+
+            radioGroupCount.append(countLabel);
+            countLabel.append(countElem);
+            radioGroupCount.append(countByPercentageLabel);
+            countByPercentageLabel.append(countByPercentage);
+            menuDOM.append(radioGroupCount);
 
             const yValue = d => d['manufacturer'];
-            const xValue = d => d['Count'];
+            const xValue = d => {
+                if(countByPercentageBool) {
+                    return d['Adj Count'];
+                }
+                else{
+                    return d['Count'];
+                }
+            }
             const margin = { top: 50, right: 40, bottom: 77, left: 200 };
             const innerWidth = width - margin.left - margin.right;
             const innerHeight = height - margin.top - margin.bottom;
@@ -704,6 +1121,7 @@
                 .ticks(5);
 
             const xAxisG = g.append('g').call(xAxis)
+                .attr('id', 'xAxis')
                 .attr('transform', `translate(0,${innerHeight})`);
 
             g.append('text')
@@ -759,11 +1177,20 @@
                 .style("padding", "10px");
 
             var mouseover = function(d) {
-                tooltip
+                if(countByPercentageBool){
+                    tooltip
+                    // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
+                    .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Percentage of Total Cases for Manufacturer: " + d["Adj Count"])
+                    // .style("opacity", 1)
+                    .style("visibility", "visible");
+                }
+                else{
+                    tooltip
                     // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
                     .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Count: " + d["Count"])
                     // .style("opacity", 1)
                     .style("visibility", "visible");
+                }
             };
 
             var mousemove = function(e, d) {
@@ -787,7 +1214,7 @@
                     .attr('height', d => yScale.bandwidth())
                     .attr('x', d => 0) 
                     .attr('width', d => 0)
-                    .attr('id', d => d['AE'])
+                    .attr('id', d => d["manufacturer"])
                     .attr("fill", function(d,i) {
                         return color(i);
                     })
@@ -837,9 +1264,17 @@
 
             //TODO: display filtered data
                 const filterRange = values;
-                var filteredData = data.filter(function(o) {
-                    return o.Count >= filterRange[0] && o.Count <= filterRange[1];
-                });
+
+                if(countByPercentageBool){
+                    var filteredData = data.filter(function(o) {
+                        return o['Adj Count'] >= filterRange[0] && o['Adj Count'] <= filterRange[1];
+                    });
+                }
+                else{
+                    var filteredData = data.filter(function(o) {
+                        return o.Count >= filterRange[0] && o.Count <= filterRange[1];
+                    });
+                }
 
                 overHeight = filteredData.length * 50 + margin.left + margin.right;
                 range = d3.range(0, overHeight * (data.length + 1), overHeight);
@@ -871,7 +1306,7 @@
                         .attr('height', d => yScale.bandwidth())
                         .attr('x', d => 0) 
                         .attr('width', d => 0)
-                        .attr('id', d => d['AE'])
+                        .attr('id', d => d["manufacturer"])
                         .attr("fill", function(d,i) {
                             return color(i);
                         })
@@ -891,15 +1326,41 @@
             noUiRangeSlider.noUiSlider.on('change', changeRange);
         };
 
-
-        // d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
-        d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
+        // d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
             
-            var filteredData = data.filter(d => {
-                return d['Adverse Event'] === ae;
-            })
+        //     var filteredData = data.filter(d => {
+        //         return d['Adverse Event'] === ae;
+        //     })
+        //     filteredData.forEach(d => {
+        //         d.Count = +d.Count;
+        //     });
+        //     render(filteredData.sort(function (a, b) {
+        //         if (a.manufacturer < b.manufacturer) {
+        //             return -1;
+        //         }
+        //         if (a.manufacturer > b.manufacturer) {
+        //             return 1;
+        //         }
+        //         return 0;
+        //     }));
+        // });
+
+        const parameterJSON = JSON.stringify({"drug": drug, "ae": ae});
+
+        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/barChartSub', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({"drug": drug, "ae": ae})
+        })
+        .then((response) => response.json())
+        .then((json) => {
+            const filteredData = JSON.parse(json['body'])
             filteredData.forEach(d => {
                 d.Count = +d.Count;
+                d['Adj Count'] = +d['Adj Count'] * 100;
             });
             render(filteredData.sort(function (a, b) {
                 if (a.manufacturer < b.manufacturer) {
@@ -911,7 +1372,7 @@
                 return 0;
             }));
         });
-    }
 
+    }
     
 </script>

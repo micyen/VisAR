@@ -43,3 +43,15 @@ top: 50px;
 background-color: purple;
 color: white;
 }
+
+.radioGroup {
+    border: 1px solid grey;
+    margin: 5px;
+    padding: 10px;
+    cursor: pointer;
+    width: auto;
+}
+
+#rangeSlider .noUi-connect {
+	background: pink;
+}
