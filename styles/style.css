@@ -55,6 +55,14 @@ html, body {
     background-color: grey;
 }
 
+.sidenav #selected {
+    background-color: #8b558b
+}
+
+.sidenav #selected:hover{
+    background-color: grey;
+}
+
 .about {
     background-color: #d9d9d9;
     left: 100px;

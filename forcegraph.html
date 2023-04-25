@@ -2,18 +2,20 @@
 <html>
     <head>
         <link rel="stylesheet" href="./styles/style.css">
+        <link rel="stylesheet" href="./styles/forcegraph_styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <script src="https://unpkg.com/3d-force-graph"></script>
         </script>
     </head>
     <body>
         <div class="sidenav">
-            <a href="./dashboard.html">
+            <a href="./index.html">
                 <img src="imgs/Home_Icon.svg" alt="Home Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Home
                 </div>
             </a>
-            <a href="./forcegraph.html">
+            <a href="./forcegraph.html" id="selected">
                 <img src="imgs/Graph_Icon.svg" alt="Bipartite Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Graph
@@ -45,6 +47,9 @@
                 </h1>
             </div>
             <div class="menu" id="menu"></div>
+            <div class="menu" id="actions" style="padding-top: 30px"></div>
+            <div id="minimap" display="none">
+            </div> 
             <div id="forcegraph"></div>
         </div>
     </body>
@@ -56,133 +61,174 @@
 
     function selectDemographicInitiate() {
 
-    fetch('https://faers-proj.s3.amazonaws.com/Data/DrugList.txt')
-    .then((response) => response.text())
-    .then((text) => {
-        var druglist = text.split("\n");
-        // const parent = document.getElementById("charts");
-        // const menu = document.getElementById("menu");
-        // menu.replaceChildren();
-        // parent.replaceChildren();
+        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/drugList')
+        .then((response) => response.json())
+        .then((json) => {
+            var druglist = JSON.parse(json['body']);
+            // const parent = document.getElementById("charts");
+            // const menu = document.getElementById("menu");
+            // menu.replaceChildren();
+            // parent.replaceChildren();
 
-        const select = document.createElement("select");
-        select.id = "drug";
-
-        for (var i = 0; i < druglist.length; i++) {
+            const select = document.createElement("select");
+            select.id = "drug";
             var option = document.createElement("option");
-            option.value = druglist[i].trim();
-            option.text = druglist[i].trim();
+            option.value = "Any Drug";
+            option.text = "Any Drug";
             select.appendChild(option);
-        }
 
-        return select
-    })
-    .then((drugSelect) => {
-        const parent = document.getElementById("menu");
-        const form = document.createElement('form');
+            for (var i = 0; i < druglist.length; i++) {
+                var option = document.createElement("option");
+                option.value = druglist[i].trim();
+                option.text = druglist[i].trim();
+                select.appendChild(option);
+            }
 
-        const drugLabel = document.createElement('label');
-        drugLabel.textContent = 'Drug: ';
-        drugLabel.appendChild(drugSelect);
 
-        const distanceLabel = document.createElement('label');
-        distanceLabel.textContent = 'Distance (from Source Drug Node): ';
-        const distanceInput = document.createElement('input');
-        distanceInput.type = 'number';
-        distanceInput.min = 0;
-        distanceInput.placeholder = 'Distance';
-        distanceInput.id = 'distance';
+            return select
+        })
+        .then((drugSelect) => {
+            const parent = document.getElementById("menu");
+            const form = document.createElement('form');
 
-        const minWtLabel = document.createElement('label');
-        minWtLabel.textContent = 'Minimum Edge Weight (Number of Cases): ';
-        const weightInput = document.createElement('input');
-        weightInput.type = 'number';
-        weightInput.min = 0;
-        weightInput.placeholder = 'Minimum Weight';
-        weightInput.id = 'minWt';
+            const drugLabel = document.createElement('label');
+            drugLabel.textContent = 'Drug: ';
+            drugLabel.appendChild(drugSelect);
 
-        const submitButton = document.createElement('input');
-        submitButton.type = 'submit';
-        submitButton.value = 'Submit';
+            const distanceLabel = document.createElement('label');
+            distanceLabel.textContent = 'Distance (from Source Drug Node): ';
+            const distanceInput = document.createElement('input');
+            distanceInput.type = 'number';
+            distanceInput.min = 0;
+            distanceInput.placeholder = 'Distance';
+            distanceInput.id = 'distance';
 
-        form.appendChild(drugLabel);
-        form.appendChild(document.createElement('br'));
-        form.appendChild(document.createElement('br'));
-        form.appendChild(distanceLabel);
-        form.appendChild(distanceInput);
-        form.appendChild(document.createElement('br'));
-        form.appendChild(document.createElement('br'));
-        form.appendChild(minWtLabel);
-        form.appendChild(weightInput);
-        form.appendChild(document.createElement('br'));
-        form.appendChild(document.createElement('br'));
-        form.appendChild(submitButton);
-        parent.appendChild(form);
+            const minWtLabel = document.createElement('label');
+            minWtLabel.textContent = 'Minimum Edge Weight (Number of Cases): ';
+            const weightInput = document.createElement('input');
+            weightInput.type = 'number';
+            weightInput.min = 0;
+            weightInput.placeholder = 'Minimum Weight';
+            weightInput.id = 'minWt';
 
-        form.addEventListener('submit', (event) => {
-            event.preventDefault();
+            const submitButton = document.createElement('input');
+            submitButton.type = 'submit';
+            submitButton.value = 'Submit';
 
-            const drug = document.getElementById("drug").value;
-            const distance = document.getElementById("distance").valueAsNumber;
-            const minWt = document.getElementById("minWt").valueAsNumber;
+            form.appendChild(drugLabel);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(distanceLabel);
+            form.appendChild(distanceInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(minWtLabel);
+            form.appendChild(weightInput);
+            form.appendChild(document.createElement('br'));
+            form.appendChild(document.createElement('br'));
+            form.appendChild(submitButton);
+            parent.appendChild(form);
 
-            const parameterJSON = JSON.stringify({"drug": drug, "distance": distance, "minWt":minWt});
-            console.log(parameterJSON);
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
 
-            fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/forceGraph', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: parameterJSON
-            })
-            .then((response) => {
-                try {
-                    const text = response.text()
-                    .then((t) => {
-                        if(t === "ERROR"){
-                            alert("ERROR: Check all fields are filled correctly");
-                        }
-                        else {
-                            const jsonBody = JSON.parse(JSON.parse(t)['body']);
-                            console.log(jsonBody);
-                            const nodes = jsonBody['nodes'];
-                            const links = jsonBody['links'];
+                const drug = document.getElementById("drug").value;
+                const distance = document.getElementById("distance").valueAsNumber;
+                const minWt = document.getElementById("minWt").valueAsNumber;
 
-                            console.log(nodes.length);
-                            console.log(links.length);
+                var parameterJSON = {"drug": drug, "distance": distance, "minWt":minWt};
+                var filtered = Object.fromEntries(Object.entries(parameterJSON).filter(([_, v]) => !isNaN(v) || (typeof v === 'string')))
+                if(filtered['drug'] === 'Any Drug') {
+                    delete filtered.drug;
+                }
+                const parameterJSONFiltered = JSON.stringify(filtered);
 
-                            if(nodes.length > 4000 || links.length > 1000) {
-                                if(true){
-                                    if(confirm("This graph might be too large to render! Render in click to expand mode?")){
-                                        renderLargeGraph(jsonBody, drug);
-                                    }
-                                } 
-                            }         
-                            else{
-                                renderGraph(jsonBody, drug);                 
+                fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/forceGraph', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: parameterJSONFiltered
+                })
+                .then((response) => {
+                    try {
+                        const text = response.text()
+                        .then((t) => {
+                            if(t === "ERROR"){
+                                alert("ERROR: Check all fields are filled correctly");
                             }
-                        }
-                    })
-                }
-                catch(err) {
-                    alert(err);
-                }
-            });
-        });
-    })}
+                            else {
+                                const jsonBody = JSON.parse(JSON.parse(t)['body']);
+                                console.log(jsonBody);
+                                const nodes = jsonBody['nodes'];
+                                const links = jsonBody['links'];
 
-    function renderGraph(jsonBody, drug) {
+                                console.log(nodes.length);
+                                console.log(links.length);
+
+                                if(nodes.length > 4000 || links.length > 1000) {
+                                    if(true){
+                                        if(confirm("This graph might be too large to render! Render in large graph mode (links invisible until hovering)?")){
+                                            renderGraph(jsonBody, drug, true);
+                                        }
+                                    } 
+                                }         
+                                else{
+                                    renderGraph(jsonBody, drug, false);                 
+                                }
+                            }
+                        })
+                    }
+                    catch(err) {
+                        alert(err);
+                    }
+                });
+            });
+        })
+    }
+
+    function renderGraph(graphData, drug, largeGraphMode) {
+
+        function removeAllChildNodes(parent) {
+            while (parent.firstChild) {
+                parent.removeChild(parent.firstChild);
+            }
+        }        
+
+        const content = JSON.stringify(graphData);
+
+        // make download button to donwload graph data
+        const actionDiv = document.getElementById('actions');
+        removeAllChildNodes(actionDiv)
+        const file = new Blob([content], { type: 'text/plain' });
+        const downloadLink = document.createElement('a');
+        downloadLink.download = "graphData.json";
+        downloadLink.href = URL.createObjectURL(file);
+        downloadLink.innerHTML = 'Download Data as File';
+        downloadLink.classList.add('btn');
+        downloadLink.id = 'downloadLink';
+        // const downloadButton = document.createElement('button');
+        // downloadLink.appendChild(downloadButton);
+        // downloadButton.id = 'downloadButton';
+        // downloadButton.value = 'Download Data as File';
+        // downloadButton.classList.add('btn');
+        const input = document.createElement('i');
+        input.classList.add('fa');
+        input.classList.add('fa-download');
+        downloadLink.appendChild(input);
+        actionDiv.appendChild(downloadLink);
+        // actionDiv.appendChild(downloadLink);
+
         const elem = document.getElementById('forcegraph');
         const myGraph = ForceGraph3D();
 
         // cross-link node objects
-        jsonBody.links.forEach(link => {
-            var a = jsonBody.nodes.filter(node => {
+        graphData.links.forEach(link => {
+            var a = graphData.nodes.filter(node => {
                 return node.id === link.source
             })[0];
-            var b = jsonBody.nodes.filter(node => {
+            var b = graphData.nodes.filter(node => {
                 return node.id === link.target
             })[0];
             !a.neighbors && (a.neighbors = []);
@@ -196,7 +242,7 @@
             b.links.push(link);
         });
 
-        console.log(jsonBody);
+        console.log(graphData);
 
         const highlightNodes = new Set();
         const highlightLinks = new Set();
@@ -206,8 +252,19 @@
         console.log(drug)
 
         myGraph(elem)
+        .linkVisibility(() => {
+            if(largeGraphMode){
+                return false;
+            }
+            else{
+                return true;
+            }
+        })
         .warmupTicks(200)
-        .graphData(jsonBody)
+        .graphData(graphData)
+        .backgroundColor('white')	
+        .linkColor('#ffc0cb')
+        .linkOpacity(0.5)
         .nodeColor(node => { 
             if (node === hoverNode) {
                 return 'red';
@@ -228,8 +285,8 @@
         .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
         .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
         .linkDirectionalParticleWidth(4)
-        .nodeLabel(node => `${node.name}`) // change to actual node name
-        .linkLabel(link => `${link.value}`) // change to actual link name
+        .nodeLabel(node => `<span style = "color: black">${node.name}</span>`) // change to actual node name
+        .linkLabel(link => `<span style = "color: black">${link.value}</span>`) // change to actual link name d => `<span style="color: purple">${d.name}</span>`
         .nodeVal(node => {
             if(node.name == drug){
                 return 10;
@@ -246,8 +303,10 @@
           highlightLinks.clear();
           if (node) {
             highlightNodes.add(node);
-            node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
-            node.links.forEach(link => highlightLinks.add(link));
+            if(node.neighbors != null && node.links != null){
+                node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
+                node.links.forEach(link => highlightLinks.add(link));
+            }
           }
 
           hoverNode = node || null;
@@ -315,156 +374,9 @@
             myGraph
             .nodeColor(myGraph.nodeColor())
             .linkWidth(myGraph.linkWidth())
-            .linkDirectionalParticles(myGraph.linkDirectionalParticles());
-            //.linkColor(myGraph.)
+            .linkDirectionalParticles(myGraph.linkDirectionalParticles())
+            .linkColor('red');
         }
     }
 
-    function renderLargeGraph(jsonBody, drug) {
-        const elem = document.getElementById('forcegraph');
-        const myGraph = ForceGraph3D();
-
-        // cross-link node objects
-        jsonBody.links.forEach(link => {
-            var a = jsonBody.nodes.filter(node => {
-                return node.id === link.source
-            })[0];
-            var b = jsonBody.nodes.filter(node => {
-                return node.id === link.target
-            })[0];
-            !a.neighbors && (a.neighbors = []);
-            !b.neighbors && (b.neighbors = []);
-            a.neighbors.push(b);
-            b.neighbors.push(a);
-
-            !a.links && (a.links = []);
-            !b.links && (b.links = []);
-            a.links.push(link);
-            b.links.push(link);
-        });
-
-        console.log(jsonBody);
-
-        const highlightNodes = new Set();
-        const highlightLinks = new Set();
-        let hoverNode = null;
-
-        const selectedNodes = new Set();
-
-        console.log(drug);
-        myGraph(elem)
-        .warmupTicks(200)
-        .graphData(jsonBody)
-        .nodeColor(node => { 
-            if (node === hoverNode) {
-                return 'red';
-            }
-            else if (highlightNodes.has(node)){
-                return 'purple';
-            }
-            else if (selectedNodes.has(node)){
-                return 'yellow';
-            }
-            else if (node.name === drug) {
-                return 'green';
-            }
-            else {
-                return 'steelblue';
-            }
-        })
-        .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
-        .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
-        .linkDirectionalParticleWidth(4)
-        .nodeLabel(node => `${node.name}`) // change to actual node name
-        .linkLabel(link => `${link.value}`) // change to actual link name
-        .nodeVal(node => {
-            if(node.name == drug){
-                return 10;
-            }
-            else {
-                return 1;
-            }
-        })
-        .onNodeHover(node => {
-          // no state change
-          if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
-
-          highlightNodes.clear();
-          highlightLinks.clear();
-          if (node) {
-            highlightNodes.add(node);
-            node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
-            node.links.forEach(link => highlightLinks.add(link));
-          }
-
-          hoverNode = node || null;
-
-          updateHighlight();
-        })
-        .onLinkHover(link => {
-          highlightNodes.clear();
-          highlightLinks.clear();
-
-          if (link) {
-            highlightLinks.add(link);
-            highlightNodes.add(link.source);
-            highlightNodes.add(link.target);
-          }
-
-          updateHighlight();
-        })
-        .onNodeClick((node) => {
-          const distance = 40;
-          const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
-
-          const newPos = node.x || node.y || node.z
-            ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
-            : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
-
-          myGraph.cameraPosition(
-            newPos, // new position
-            node, // lookAt ({ x, y, z })
-            3000  // ms transition duration
-          );
-        })
-        .onNodeRightClick((node, event) => {
-          if (event.ctrlKey || event.shiftKey || event.altKey) { // multi-selection
-            selectedNodes.has(node) ? selectedNodes.delete(node) : selectedNodes.add(node);
-          } else { // single-selection
-            const untoggle = selectedNodes.has(node) && selectedNodes.size === 1;
-            selectedNodes.clear();
-            !untoggle && selectedNodes.add(node);
-          }
-
-          myGraph.nodeColor(myGraph.nodeColor()); // update color of selected nodes
-        
-        })
-        .onNodeDrag((node, translate) => {
-          if (selectedNodes.has(node)) { // moving a selected node
-            [...selectedNodes]
-              .filter(selNode => selNode !== node) // don't touch node being dragged
-              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = node[coord] + translate[coord])); // translate other nodes by same amount
-          }
-        })
-        .onNodeDragEnd(node => {
-          if (selectedNodes.has(node)) { // finished moving a selected node
-            [...selectedNodes]
-              .filter(selNode => selNode !== node) // don't touch node being dragged
-              .forEach(node => ['x', 'y', 'z'].forEach(coord => node[`f${coord}`] = undefined)); // unfix controlled nodes
-          }
-        })
-        .onBackgroundRightClick(() => {
-            myGraph.zoomToFit(400);
-        });
-
-        function updateHighlight() {
-            // trigger update of highlighted objects in scene
-            myGraph
-            .nodeColor(myGraph.nodeColor())
-            .linkWidth(myGraph.linkWidth())
-            .linkDirectionalParticles(myGraph.linkDirectionalParticles());
-            //.linkColor(myGraph.)
-        }
-
-    }
 </script>
