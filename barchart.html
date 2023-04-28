@@ -14,7 +14,7 @@
     </head>
     <body id="main">
         <div class="sidenav">
-            <a href="./dashboard.html">
+            <a href="./index.html">
                 <img src="imgs/Home_Icon.svg" alt="Home Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Home
@@ -32,7 +32,7 @@
                     Treemap
                 </div>
             </a>
-            <a href="./barchart.html">
+            <a href="./barchart.html" id="selected">
                 <img src="imgs/Barchart_Icon.svg" alt="Barchart Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Bar Chart
@@ -52,6 +52,17 @@
                 </h1>
             </div>
             <div class="menu" id="menu"></div>
+            <div class="help-tip">
+                <p> The Barchart Manufacturer explorer shows two views: (1) counts of adverse effects for each drug (2) the breakdown of a specified adverse effect by manufacturer.
+                    <br> <br> After generating the first view, click on any bar to move to the breakdown of that bar. All bars are color coded by deaths, where red is a higher death percentage and green is a lower death percentage.
+                    <br> <br> Interactivity:
+                    <br> Hovering over bars for highlighting and tooltip
+                    <br> Sort by ascending and descending counts
+                    <br> In the second view between manufacturers, you can also use absolute count or percentage count. Percentage count is defined as the number of cases for that adverse effect and manufacturer among all cases for that manufacturer.
+                    <br> Filter which bars to show by the range slider
+                    <br> Zoom in or zoom out on bars via the zoom slider to get detailed or overall views
+                </p>
+            </div>
             <div class="body" id="charts"></div>
         </div>
     </body>
@@ -61,13 +72,15 @@
 
     import {range} from "https://cdn.jsdelivr.net/npm/d3-array@3/+esm";
 
+    const SERVER = 'http://ec2-54-91-14-203.compute-1.amazonaws.com:5000'
+
     // document.getElementById("newchart").addEventListener("click", addChart);
     // startChart('Acetaminophen');
     selectDrugInitiate();
 
     function selectDrugInitiate() {
 
-        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/drugList')
+        fetch(SERVER + '/drugList')
         .then((response) => response.json())
         .then((json) => {
             var druglist = JSON.parse(json['body']);
@@ -179,12 +192,12 @@
         noUiSlider.create(noUiRangeSlider, {
             range: {
                 'min': 0,
-                'max': max
+                'max': Math.ceil(max)
             },
             step: 1,
-            start: [0, max],
+            start: [0, Math.ceil(max)],
             margin: 0, 
-            limit: max,
+            limit: Math.ceil(max),
             connect: true,
             direction: 'ltr',
             orientation: 'horizontal',
@@ -229,12 +242,12 @@
             noUiRangeSlider.noUiSlider.updateOptions({
                 range: {
                     'min': 0,
-                    'max': max
+                    'max': Math.ceil(max)
                 },
                 step: 1,
-                start: [0, max],
+                start: [0, Math.ceil(max)],
                 margin: 0, 
-                limit: max,
+                limit: Math.ceil(max),
                 connect: true,
                 direction: 'ltr',
                 orientation: 'horizontal',
@@ -248,6 +261,8 @@
                 //     density: 4
                 // }
             }); 
+
+            var color = d3.scaleSequential(d3.interpolateRdYlGn);
 
             const sortData = (type) => {
 
@@ -313,7 +328,7 @@
                         .attr('width', d => 0)
                         .attr('id', d => d["manufacturer"])
                         .attr("fill", function(d,i) {
-                            return color(i);
+                            return color(1 - d['% Death']);
                         })
                     .on("mouseover", (_, d) => {mouseover(d)})
                     .on("mousemove", (e, d) => {mousemove(e, d)})
@@ -397,7 +412,6 @@
             const g = svg.append('g')
                 .attr('id', 'g')
                 .attr('transform', `translate(${margin.left},${margin.top})`);
-            console.log(`translate(${margin.left},${margin.top})`)
 
             const xAxis = d3.axisBottom(xScale)
                 .tickSize(-innerHeight)
@@ -407,7 +421,6 @@
                 .attr('id', 'xAxis')
                 .call(xAxis)
                 .attr('transform', `translate(0,${innerHeight})`);
-            console.log(`translate(0,${innerHeight})`)
 
             g.append('text')
                 .attr('class', 'title')
@@ -465,7 +478,7 @@
             var mouseover = function(d) {
                 tooltip
                     // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
-                    .html("Adverse Effect: " + d["AE"] + "<br>" + "Count: " + d["Count"])
+                    .html("Adverse Effect: " + d["AE"] + "<br>" + "Count: " + d["Count"] + "<br>" + "Percent Death: " + d["% Death"] * 100)
                     // .style("opacity", 1)
                     .style("visibility", "visible");
             };
@@ -489,7 +502,8 @@
                 addChart(drug, d["AE"]);
             }
 
-            var color = d3.scaleOrdinal([`#383867`, `#584c77`, `#33431e`, `#a36629`, `#92462f`, `#b63e36`, `#b74a70`, `#946943`]);
+            // var color = d3.scaleOrdinal([`#383867`, `#584c77`, `#33431e`, `#a36629`, `#92462f`, `#b63e36`, `#b74a70`, `#946943`]);
+            // var color = d3.scaleOrdinal(d3.interpolateRdYlGn);
 
             g2.selectAll('mybar')
                 .data(data)
@@ -501,7 +515,7 @@
                     .attr('id', d => d['AE'])
                     .style("cursor", "pointer")
                     .attr("fill", function(d,i) {
-                        return color(i);
+                        return color(1 - d['% Death']);
                     })
                 .on("mouseover", (_, d) => {mouseover(d)})
                 .on("mousemove", (e, d) => {mousemove(e, d)})
@@ -520,10 +534,8 @@
                 .attr('x', d => 0)
                 .attr('width', d => xScale(xValue(d)))
 
-            // TODO: possibly remove axis labels if too small
             function zoomed(value) {
                 const new_range = range.map((d) => { return d * value });
-                console.log(new_range);
                 yScale.range(new_range);
                 const new_svg = d3.select('#inner_svg')
                     .attr("height", overHeight * value + "px")
@@ -593,7 +605,7 @@
                         .attr('id', d => d['AE'])
                         .style("cursor", "pointer")
                         .attr("fill", function(d,i) {
-                            return color(i);
+                            return color(1 - d['% Death']);
                         })
                     .on("mouseover", (_, d) => {mouseover(d)})
                     .on("mousemove", (e, d) => {mousemove(e, d)})
@@ -611,46 +623,8 @@
             }
             noUiRangeSlider.noUiSlider.on('change', changeRange);
         };
-        
-         // d3.csv('./data/BarChart_ACETAMINOPHEN_all.csv').then(data => {
-        // d3.csv(`https://faers-proj.s3.amazonaws.com/BarChart/BarData${drug}_all.csv`).then(data => {
-        //     var aggr_data = {}
-        //     var aggr_data_list = []
-        //     function aggregate(_callback){
-        //         Object.entries(data).forEach((entry) => {
-        //             const ae = entry[1]['Adverse Event'];
-        //             const count = entry[1]['Count'];
-        //             if (ae in aggr_data) {
-        //                 aggr_data[ae] += +count;
-        //             }
-        //             else {
-        //                 aggr_data[ae] = +count;
-        //             }
-        //         });
-        //         aggr_data_list = Object.keys(aggr_data).sort().map((key) => ({'AE': key, 'Count': +aggr_data[key]}));
-        //         aggr_data_list = aggr_data_list.filter(d => {
-        //             // Number.isNaN(o.Count)
-        //             return d.AE !== 'undefined';
-        //         })
-        //         console.log(aggr_data_list)
-        //         _callback();
-        //     }
 
-        //     function aggregate2(){
-        //         aggregate(function() {
-        //             console.log(aggr_data_list);
-        //             render(aggr_data_list);
-        //         })
-        //     }
-
-        //     aggregate2();
-        //     // filteredData.forEach(d => {
-        //     //     d.Count = +d.Count;
-        //     // });
-        //     // render(aggr_data);
-        // });
-
-        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/barChartMain', {
+        fetch(SERVER + '/barChartMain', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -663,6 +637,7 @@
             const data = JSON.parse(json['body'])
             data.forEach(d => {
                 d.Count = +d.Count;
+                d['% Death'] = +d['% Death'];
             });
             render(data.sort(function (a, b) {
                 if (a.manufacturer < b.manufacturer) {
@@ -803,9 +778,9 @@
                     'max': Math.ceil(max)
                 },
                 step: 1,
-                start: [0, max],
+                start: [0, Math.ceil(max)],
                 margin: 0, 
-                limit: max,
+                limit: Math.ceil(max),
                 connect: true,
                 direction: 'ltr',
                 orientation: 'horizontal',
@@ -819,6 +794,8 @@
                 //     density: 4
                 // }
             });
+
+            var color = d3.scaleSequential(d3.interpolateRdYlGn);
 
             const sortData = (type) => {
 
@@ -915,12 +892,11 @@
                         .attr('width', d => 0)
                         .attr('id', d => d["manufacturer"])
                         .attr("fill", function(d,i) {
-                            return color(i);
+                            return color(1 - d['% Death']);
                         })
                     .on("mouseover", (_, d) => {mouseover(d)})
                     .on("mousemove", (e, d) => {mousemove(e, d)})
-                    .on("mouseleave", (_, d) => {mouseleave(d)})
-                    .on("click", (_, d) => {mouseclick(d)});
+                    .on("mouseleave", (_, d) => {mouseleave(d)});
 
                 g2_new.selectAll('rect')
                     .transition()
@@ -941,7 +917,6 @@
                         checked = ele[i].value
                     }
                 }
-                console.log(checked)
 
                 const countsData = data.map((o) => o.Count)
                 max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
@@ -952,9 +927,9 @@
                         'max': Math.ceil(max)
                     },
                     step: 1,
-                    start: [0, max],
+                    start: [0, Math.ceil(max)],
                     margin: 0, 
-                    limit: max,
+                    limit: Math.ceil(max),
                     connect: true,
                     direction: 'ltr',
                     orientation: 'horizontal',
@@ -981,7 +956,6 @@
                         checked = ele[i].value
                     }
                 }
-                console.log(checked)
                 const countsData = data.map((o) => o['Adj Count'])
                 max = Math.max(countsData.reduce((a, b) => Math.max(a, b), -Infinity))
 
@@ -991,9 +965,9 @@
                         'max': Math.ceil(max)
                     },
                     step: 1,
-                    start: [0, max],
+                    start: [0, Math.ceil(max)],
                     margin: 0, 
-                    limit: max,
+                    limit: Math.ceil(max),
                     connect: true,
                     direction: 'ltr',
                     orientation: 'horizontal',
@@ -1180,14 +1154,14 @@
                 if(countByPercentageBool){
                     tooltip
                     // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
-                    .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Percentage of Total Cases for Manufacturer: " + d["Adj Count"])
+                    .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Percentage of Total Cases for Manufacturer: " + d["Adj Count"] + "<br>" + "Percent Death: " + d["% Death"] * 100)
                     // .style("opacity", 1)
                     .style("visibility", "visible");
                 }
                 else{
                     tooltip
                     // .html("subgroup: " + subgroupName + "<br>" + "Value: " + subgroupValue)
-                    .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Count: " + d["Count"])
+                    .html("Manufacturer: " + d["manufacturer"] + "<br>" + "Count: " + d["Count"] + "<br>" + "Percent Death: " + d["% Death"] * 100)
                     // .style("opacity", 1)
                     .style("visibility", "visible");
                 }
@@ -1205,7 +1179,7 @@
                     .style("visibility", "hidden");
             };
 
-            var color = d3.scaleOrdinal([`#383867`, `#584c77`, `#33431e`, `#a36629`, `#92462f`, `#b63e36`, `#b74a70`, `#946943`]);
+            // var color = d3.scaleOrdinal([`#383867`, `#584c77`, `#33431e`, `#a36629`, `#92462f`, `#b63e36`, `#b74a70`, `#946943`]);
 
             g2.selectAll('mybar')
                 .data(data)
@@ -1216,7 +1190,7 @@
                     .attr('width', d => 0)
                     .attr('id', d => d["manufacturer"])
                     .attr("fill", function(d,i) {
-                        return color(i);
+                        return color(1 - d['% Death']);
                     })
                 .on("mouseover", (_, d) => {mouseover(d)})
                 .on("mousemove", (e, d) => {mousemove(e, d)})
@@ -1231,7 +1205,6 @@
             // TODO: possibly remove axis labels if too small
             function zoomed(value) {
                 const new_range = range.map((d) => { return d * value });
-                console.log(new_range);
                 yScale.range(new_range);
                 const new_svg = d3.select('#inner_svg')
                     .attr("height", overHeight * value + "px")
@@ -1308,12 +1281,11 @@
                         .attr('width', d => 0)
                         .attr('id', d => d["manufacturer"])
                         .attr("fill", function(d,i) {
-                            return color(i);
+                            return color(1 - d['% Death']);
                         })
                     .on("mouseover", (_, d) => {mouseover(d)})
                     .on("mousemove", (e, d) => {mousemove(e, d)})
-                    .on("mouseleave", (_, d) => {mouseleave(d)})
-                    .on("click", (_, d) => {mouseclick(d)});
+                    .on("mouseleave", (_, d) => {mouseleave(d)});
 
                 g2_new.selectAll('rect')
                     .transition()
@@ -1347,7 +1319,7 @@
 
         const parameterJSON = JSON.stringify({"drug": drug, "ae": ae});
 
-        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/barChartSub', {
+        fetch(SERVER + '/barChartSub', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',

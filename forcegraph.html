@@ -3,7 +3,10 @@
     <head>
         <link rel="stylesheet" href="./styles/style.css">
         <link rel="stylesheet" href="./styles/forcegraph_styles.css">
+        <link rel="stylesheet" href="./styles/toggle.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
         <script src="https://unpkg.com/3d-force-graph"></script>
         </script>
     </head>
@@ -46,22 +49,46 @@
                     VisAR
                 </h1>
             </div>
-            <div class="menu" id="menu"></div>
+            <div class="menu" id="menu">
+            </div>
+            <div class="help-tip">
+                <p> The BFS Graph Explorer computes the resulting graph obtained by BFS (up until the maximum distance) on the complete graph of drugs, where each node is a drug and each edge between two drugs is weighted by the number of cases those two drugs have in common. Edges smaller than the minimum weight are excluded.
+                    <br> <br> Edges not found by BFS but that exist between vertices in the BFS graph and which have a weight at least as much as the minimum edge weight are also shown.
+                    <br> <br> Interactivity:
+                    <br> Scroll to zoom, right click to pan, left click to move camera
+                    <br> Right click on background to fit to canvas
+                    <br> Right click (+ control) on node(s) to select
+                    <br> Hover over node or edge to highlight itself, neighbors, and connecting edges and to display a tooltip
+                    <br> Left click on node to zoom in
+                    <br> Download graph data for future reference
+                    <br> Color node by deaths, number of cases, or distance from source. Darker red means a higher amount of deaths, a higher number of cases, or that the node is closer to the source.
+                    <br> Toggle non-BFS Edges on and off
+                    <br> Toggle minimap non-BFS nodes on and off
+                    <br> Minimap shows nodes in graph relative to all drugs
+                </p>
+            </div>
             <div class="menu" id="actions" style="padding-top: 30px"></div>
-            <div id="minimap" display="none">
-            </div> 
-            <div id="forcegraph"></div>
+            <div id="drawing-board">
+                <div id="minimap-container" style = "display: none">
+                    <div id = "minimap" style="width: 100%; height: 100%"></div>
+                </div>
+                <div id="forcegraph-container">
+                    <div id="forcegraph"></div>
+                </div>
+            </div>
         </div>
     </body>
 </html>
 
 <script type="module">
 
+    const SERVER = 'http://ec2-54-91-14-203.compute-1.amazonaws.com:5000'
+
     selectDemographicInitiate();
 
     function selectDemographicInitiate() {
 
-        fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/drugList')
+        fetch(SERVER + '/drugList')
         .then((response) => response.json())
         .then((json) => {
             var druglist = JSON.parse(json['body']);
@@ -142,8 +169,9 @@
                     delete filtered.drug;
                 }
                 const parameterJSONFiltered = JSON.stringify(filtered);
+                console.log(parameterJSONFiltered);
 
-                fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/forceGraph', {
+                fetch(SERVER + '/forceGraph', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -156,6 +184,7 @@
                         const text = response.text()
                         .then((t) => {
                             if(t === "ERROR"){
+                                console.log()
                                 alert("ERROR: Check all fields are filled correctly");
                             }
                             else {
@@ -167,9 +196,9 @@
                                 console.log(nodes.length);
                                 console.log(links.length);
 
-                                if(nodes.length > 4000 || links.length > 1000) {
+                                if(links.length > 100000) {
                                     if(true){
-                                        if(confirm("This graph might be too large to render! Render in large graph mode (links invisible until hovering)?")){
+                                        if(confirm("This graph might be too large to render! Render anyway?")){
                                             renderGraph(jsonBody, drug, true);
                                         }
                                     } 
@@ -190,15 +219,107 @@
 
     function renderGraph(graphData, drug, largeGraphMode) {
 
+        var drugs = graphData['nodes'].map(a => a.name)
+        var edges = graphData['links'].map(a => [a.source, a.target])
+        const minimap = ForceGraph3D();
+
+        fetch(SERVER + '/forceGraph', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then((response) => {
+            try {
+                const text = response.text()
+                .then((t) => {
+                    if(t === "ERROR"){
+                        console.log(t);
+                    }
+                    else {
+                        const minimapData = JSON.parse(JSON.parse(t)['body']);
+                        
+                        minimap(document.getElementById('minimap'))
+                        .cooldownTicks(400)
+                        .linkVisibility(link => {
+                            if(edges.some(x => (x[0] === link.source && x[1] === link.target))) {
+                                return true;
+                            }
+                            else {
+                                return false;
+                            }
+                        })
+                        .linkColor('#ffc0cb')
+                        .linkOpacity(0.3)
+                        .linkWidth(1)
+                        .graphData(minimapData)
+                        // .width(document.getElementById('minimap-container').clientWidth)
+                        // .height(document.getElementById('minimap-container').clientHeight)
+                        .width(300)
+                        .height(300)
+                        .backgroundColor('white')
+                        .nodeLabel(node => `<span style = "color: black">${node.name} <br> Cases: ${node.cases} <br> Deaths: ${node.deaths}`) // change to actual node name
+                        .linkLabel(link => `<span style = "color: black">${link.value}</span>`) // change to actual link name d => `<span style="color: purple">${d.name}</span>`
+                        .nodeVal(node => {
+                            if(node.name == drug){
+                                return 10;
+                            }
+                            else {
+                                return 1;
+                            }
+                        })
+                        .nodeColor(node => {
+                            if(drugs.includes(node.name)) {
+                                return 'red'
+                            }
+                            else{
+                                return 'yellow'
+                            }
+                        })
+                        .onBackgroundRightClick(() => {
+                            minimap.zoomToFit(400);
+                        })
+                        .showNavInfo(false); 
+
+                        document.getElementById('minimap-container').style.display = 'block'
+
+                        function showMinimap() {
+                            document.getElementById('minimap-container').style.display = 'block';
+                            minimap.resumeAnimation();
+                            minimap.enablePointerInteraction(false);
+                        }
+                        function hideMinimap() {
+                            document.getElementById('minimap-container').style.display = 'none';
+                            minimap.pauseAnimation();
+                            minimap.enablePointerInteraction(false);
+                        }              
+                    }
+                })
+            }
+            catch(err) {
+                alert(err);
+            }
+        });
+
         function removeAllChildNodes(parent) {
             while (parent.firstChild) {
                 parent.removeChild(parent.firstChild);
             }
         }        
 
-        const content = JSON.stringify(graphData);
+        var colorScale = d3.scaleSequential(d3.interpolateOrRd);
+        const deathMax = graphData['nodes'].reduce((prev, current) => (prev.deaths > current.deaths) ? prev : current, 1)['deaths'];
+        const casesMax = graphData['nodes'].reduce((prev, current) => (prev.cases > current.cases) ? prev : current, 1)['cases'];
+        const distanceMax = graphData['nodes'].reduce((prev, current) => (prev.distance > current.distance) ? prev : current, 1)['distance'];
 
-        // make download button to donwload graph data
+        console.log(deathMax);
+        console.log(distanceMax);
+
+        const content = JSON.stringify(graphData['nodes']);
+
+        // make download button to download graph data
         const actionDiv = document.getElementById('actions');
         removeAllChildNodes(actionDiv)
         const file = new Blob([content], { type: 'text/plain' });
@@ -219,6 +340,105 @@
         downloadLink.appendChild(input);
         actionDiv.appendChild(downloadLink);
         // actionDiv.appendChild(downloadLink);
+
+        const deathsRadio = document.createElement('input');
+        deathsRadio.type = 'radio';
+        deathsRadio.id = 'deaths';
+        deathsRadio.name = 'colorBy';
+        deathsRadio.value = 'deaths';
+        deathsRadio.checked = 'checked';
+        deathsRadio.addEventListener("change", (event) => {
+            colorNodes('deaths');
+        }) 
+
+        const deathsRadioLabel = document.createElement("label");
+        deathsRadioLabel.innerText = 'Color Nodes by Deaths';
+        deathsRadioLabel.for = 'deaths';
+        deathsRadioLabel.className = 'radioLabel';
+
+        const casesRadio = document.createElement('input');
+        casesRadio.type = 'radio';
+        casesRadio.id = 'cases';
+        casesRadio.name = 'colorBy';
+        casesRadio.value = 'cases';
+        casesRadio.addEventListener("change", (event) => {
+            colorNodes('cases');
+        }) 
+
+        const casesRadioLabel = document.createElement("label");
+        casesRadioLabel.innerText = 'Color Nodes by Cases';
+        casesRadioLabel.for = 'cases';
+        casesRadioLabel.className = 'radioLabel';
+
+        const distanceRadio = document.createElement('input');
+        distanceRadio.type = 'radio';
+        distanceRadio.id = 'distance';
+        distanceRadio.name = 'colorBy';
+        distanceRadio.value = 'distance';
+        distanceRadio.addEventListener("change", (event) => {
+            colorNodes('distance');
+        })
+
+        const distanceRadioLabel = document.createElement("label");
+        distanceRadioLabel.innerText = 'Color Nodes by Distance';
+        distanceRadioLabel.for = 'distance';
+        distanceRadioLabel.className = 'radioLabel';
+
+        const radioGroupColor = document.createElement("div");
+        radioGroupColor.className = 'radioGroup';
+
+        radioGroupColor.append(deathsRadioLabel);
+        deathsRadioLabel.append(deathsRadio);
+        radioGroupColor.append(casesRadioLabel);
+        casesRadioLabel.append(casesRadio);
+        radioGroupColor.append(distanceRadioLabel);
+        distanceRadioLabel.append(distanceRadio);
+        actionDiv.append(document.createElement('br'));
+        actionDiv.append(document.createElement('br'));
+
+        actionDiv.append(radioGroupColor);
+
+        const toggle = document.createElement('label');
+        toggle.classList.add('switch');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = 'BFS';
+        const slider = document.createElement('span');
+        slider.classList.add('slider');
+        checkbox.addEventListener("change", (event) => {
+            bfsEdges(checkbox.checked);
+        })
+
+        const toggleLabel = document.createElement("label");
+        toggleLabel.innerText = 'Show BFS Edges ONLY';
+        toggleLabel.for = 'BFS';
+
+        toggle.appendChild(checkbox);
+        toggle.appendChild(slider);
+        actionDiv.append(document.createElement('br'));
+        toggleLabel.append(toggle);
+        actionDiv.append(toggleLabel);
+
+        const minimapToggle = document.createElement('label');
+        minimapToggle.classList.add('switch');
+        const minimapCheckbox = document.createElement('input');
+        minimapCheckbox.type = 'checkbox';
+        minimapCheckbox.id = 'minimapToggle';
+        const minimapSlider = document.createElement('span');
+        minimapSlider.classList.add('slider');
+        minimapCheckbox.addEventListener("change", (event) => {
+            minimapClear(minimapCheckbox.checked);
+        })
+
+        const minimapToggleLabel = document.createElement("label");
+        minimapToggleLabel.innerText = 'Remove Non-BFS Graph Vertices in Minimap';
+        minimapToggleLabel.for = 'minimapToggle';
+
+        minimapToggle.appendChild(minimapCheckbox);
+        minimapToggle.appendChild(minimapSlider);
+        actionDiv.append(document.createElement('br'));
+        minimapToggleLabel.append(minimapToggle);
+        actionDiv.append(minimapToggleLabel);
 
         const elem = document.getElementById('forcegraph');
         const myGraph = ForceGraph3D();
@@ -252,7 +472,7 @@
         console.log(drug)
 
         myGraph(elem)
-        .linkVisibility(() => {
+        .linkVisibility(link => {
             if(largeGraphMode){
                 return false;
             }
@@ -264,10 +484,10 @@
         .graphData(graphData)
         .backgroundColor('white')	
         .linkColor('#ffc0cb')
-        .linkOpacity(0.5)
+        .linkOpacity(0.3)
         .nodeColor(node => { 
             if (node === hoverNode) {
-                return 'red';
+                return 'steelblue';
             }
             else if (highlightNodes.has(node)){
                 return 'purple';
@@ -275,18 +495,16 @@
             else if (selectedNodes.has(node)){
                 return 'yellow';
             }
-            else if (node.name === drug) {
-                return 'green';
-            }
             else {
-                return 'steelblue';
+                return colorScale(node.deaths / deathMax);
             }
         })
         .linkWidth(link => highlightLinks.has(link) ? 4 : 1)
         .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
-        .linkDirectionalParticleWidth(4)
-        .nodeLabel(node => `<span style = "color: black">${node.name}</span>`) // change to actual node name
-        .linkLabel(link => `<span style = "color: black">${link.value}</span>`) // change to actual link name d => `<span style="color: purple">${d.name}</span>`
+        .linkDirectionalParticleWidth(link => highlightLinks.has(link) ? 4 : 0)
+        .linkDirectionalParticleColor(link => highlightLinks.has(link) ? 'pink' : '#ffc0cb')
+        .nodeLabel(node => `<span style = "color: black">${node.name} <br> Cases: ${node.cases} <br> Deaths: ${node.deaths} <br> Distance from Source: ${node.distance} </span>`) // change to actual node name
+        .linkLabel(link => `<span style = "color: black"> Number of Cases: ${link.value}</span>`) // change to actual link name d => `<span style="color: purple">${d.name}</span>`
         .nodeVal(node => {
             if(node.name == drug){
                 return 10;
@@ -375,7 +593,99 @@
             .nodeColor(myGraph.nodeColor())
             .linkWidth(myGraph.linkWidth())
             .linkDirectionalParticles(myGraph.linkDirectionalParticles())
-            .linkColor('red');
+            .linkColor('steelblue');
+        }
+
+        function colorNodes(type){
+            if(type === 'deaths'){
+                myGraph
+                .nodeColor(node => { 
+                    if (node === hoverNode) {
+                        return 'steelblue';
+                    }
+                    else if (highlightNodes.has(node)){
+                        return 'purple';
+                    }
+                    else if (selectedNodes.has(node)){
+                        return 'yellow';
+                    }
+                    else {
+                        return colorScale(node.deaths / deathMax);
+                    }
+                })
+            }
+            else if(type === 'cases'){
+                myGraph
+                .nodeColor(node => { 
+                    if (node === hoverNode) {
+                        return 'steelblue';
+                    }
+                    else if (highlightNodes.has(node)){
+                        return 'purple';
+                    }
+                    else if (selectedNodes.has(node)){
+                        return 'yellow';
+                    }
+                    else {
+                        return colorScale(node.cases / casesMax);
+                    }
+                })
+            }
+            else{ // type === 'distance'
+            myGraph
+                .nodeColor(node => { 
+                    if (node === hoverNode) {
+                        return 'steelblue';
+                    }
+                    else if (highlightNodes.has(node)){
+                        return 'purple';
+                    }
+                    else if (selectedNodes.has(node)){
+                        return 'yellow';
+                    }
+                    else {
+                        return colorScale((distanceMax - node.distance) / distanceMax);
+                    }
+                })
+            }
+        }
+
+        function bfsEdges(checked){
+            if(checked) {
+                myGraph
+                .linkVisibility(link => {
+                    if(link['BFS EDGE'] === 1) {
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                })
+            }
+            else {
+                myGraph
+                .linkVisibility(link => {
+                    return true
+                })
+            }
+        }
+
+        function minimapClear(checked) {
+            if(checked) {
+                minimap.nodeVisibility(node => {
+                    if(drugs.includes(node.name)){
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                })
+            }
+            else {
+                minimap.nodeVisibility(node => {
+                    return true
+                })
+            }
         }
     }
 

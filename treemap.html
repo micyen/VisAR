@@ -7,7 +7,7 @@
     </head>
     <body>
         <div class="sidenav">
-            <a href="./dashboard.html">
+            <a href="./index.html">
                 <img src="imgs/Home_Icon.svg" alt="Home Icon" style="width:50px;height:50px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Home
@@ -19,7 +19,7 @@
                     Graph
                 </div>
             </a>
-            <a href="./treemap.html">
+            <a href="./treemap.html" id="selected">
                 <img src="imgs/Treemap_Icon.svg" alt="Treemap Icon" style="width:100px;height:100px;margin-left:auto;margin-right:auto;display:block;">
                 <div style="text-align:center">
                     Treemap
@@ -44,6 +44,14 @@
                     VisAR
                 </h1>
             </div>
+            <div class="help-tip">
+                <p> Treemap Demographics Explorer produces a treemap according to the given parameters for the selected drug. Use it to discover whether your demographic, or which demographic, is at risk when using particular drugs.
+                    <br> <br> Interactivity:
+                    <br> Zooming in and out on hierarchical data by clicking on the corresponding box
+                    <br> Hover over individual cases to see specific details
+                    <br> Download treemap as a png file
+                </p>
+            </div>
             <div class="menu" id="menu"></div>
             <div class="chart" id="charts"></div>
         </div>
@@ -52,14 +60,16 @@
 
 <script>
 
+    const SERVER = 'http://ec2-54-91-14-203.compute-1.amazonaws.com:5000'
+
     selectDemographicInitiate();
 
     function selectDemographicInitiate() {
 
-        fetch('https://faers-proj.s3.amazonaws.com/Data/DrugList.txt')
-        .then((response) => response.text())
-        .then((text) => {
-            var druglist = text.split("\n");
+        fetch(SERVER + '/drugList')
+        .then((response) => response.json())
+        .then((json) => {
+            var druglist = JSON.parse(json['body']);
             const select = document.createElement("select");
             select.id = "drug";
 
@@ -189,7 +199,7 @@
 
                 const demographicJSONFiltered = JSON.stringify(filtered);
 
-                fetch('http://ec2-44-212-66-70.compute-1.amazonaws.com:5000/treemap', {
+                fetch(SERVER + '/treemap', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
@@ -202,20 +212,6 @@
                         response.json()
                         .then((json) => {
                             charts = document.getElementById('charts')
-                            // Maybe Later: Resizing Plotly Chart depending on number of elements
-                            // charts.style.height = (Math.log(parseFloat(JSON.parse(JSON.parse(json['body'])['data'][0]['labels'].length))+ 1) * 500).toString() + 'px';
-                            
-                            // console.log(charts.getBoundingClientRect().width);
-                            // console.log(charts.getBoundingClientRect().height);
-                            // var layout = {
-                            //     autosize: false,
-                            //     width: charts.getBoundingClientRect().width,
-                            //     height: charts.getBoundingClientRect().height,
-                            //     l: 50, 
-                            //     r: 50,
-                            //     t: 100,
-                            //     b: 100
-                            // }
                             Plotly.react('charts', JSON.parse(json['body']), {responsive: true});
                         })
                     }
