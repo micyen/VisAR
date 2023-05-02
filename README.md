@@ -46,7 +46,7 @@ To shut down a headless script, find the process # with:
 Then type:
 `kill [process# from last step]`
 
-After setting up the front end (read the Front End Setup section), the tool will be live at (replace 3-82-162-181 with the public IPv4): 
+After setting up the front end (read the Front End Setup section), the tool will be live at (replace 3-82-162-181 with the public IPv4 for the front end EC2 instance, which may be the same EC2 instance as the backend): 
 ec2-3-82-162-181.compute-1.amazonaws.com
 
 ### Preprocessing setup
