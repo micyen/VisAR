@@ -46,8 +46,8 @@ To shut down a headless script, find the process # with:
 Then type:
 `kill [process# from last step]`
 
-The tool is now live at (replace 3-82-162-181 with the public IPv4): 
-http://ec2-3-82-162-181.compute-1.amazonaws.com/index.html
+After setting up the front end (read the Front End Setup section), the tool will be live at (replace 3-82-162-181 with the public IPv4): 
+ec2-3-82-162-181.compute-1.amazonaws.com
 
 ### Preprocessing setup
 
@@ -164,4 +164,11 @@ Run the following command in the directory of your project: (Will take a very lo
 ## Front End Setup
 
 Ensure you have an Amazon EC2 instance running. Follow the instructions located at https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Tutorials.WebServerDB.CreateWebServer.html to create an Apache web server (PHP and MariaDB is not required).
+
+Download the frontend files and change the variable in treemap.html, forcegraph.html, and barchart.html
+`const SERVER = http://ec2-54-91-14-203.compute-1.amazonaws.com:5000`
+
+to 
+`const SERVER = http:///ec2-[backend public IPv4].compute-1.amazonaws.com:5000`
+
 Upload the frontend files (html files and files in ./imgs and ./styles directory only) in this repository to the /var/www/html folder on your EC2 instance and restart the Apache web server. When you go to the URL of your EC2 instance in any browser, you should see the home page of this project (index.html).
