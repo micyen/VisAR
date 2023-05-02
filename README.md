@@ -19,6 +19,8 @@ Go into the instance summary for your new instance, and record the Public IPv4 a
 Click connect in the upper right can corner, then connect again. This will open the terminal of your new server.
 
 Download the backend files from this project to a new directory ("C:/Users/peter/Desktop/VISar" in my case)
+- *Important Note*: in this repository only the backend code files are available in the backend directory, for preprocessing and the backend Flask server
+- Full backend files needed for the project (including precomputed data files) are available here: https://drive.google.com/file/d/1nNxOrqPUBUA6O6yrY6kx-CXhzga67Hn_/view?usp=sharing
 
 Run the following command, replacing the location of your downloaded files, keypair location, and ip address
 `scp -i "C:/Users/peter/Downloads/faers_kp.pem" -r "C:/Users/peter/Desktop/VISar/*" ec2-user@3.82.162.181:/home/ec2-user/`
