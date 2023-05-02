@@ -18,7 +18,7 @@ Go into the instance summary for your new instance, and record the Public IPv4 a
 
 Click connect in the upper right can corner, then connect again. This will open the terminal of your new server.
 
-Download the files from this project to a new directory ("C:/Users/peter/Desktop/VISar" in my case)
+Download the backend files from this project to a new directory ("C:/Users/peter/Desktop/VISar" in my case)
 
 Run the following command, replacing the location of your downloaded files, keypair location, and ip address
 `scp -i "C:/Users/peter/Downloads/faers_kp.pem" -r "C:/Users/peter/Desktop/VISar/*" ec2-user@3.82.162.181:/home/ec2-user/`
@@ -162,4 +162,4 @@ Run the following command in the directory of your project: (Will take a very lo
 ## Front End Setup
 
 Ensure you have an Amazon EC2 instance running. Follow the instructions located at https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Tutorials.WebServerDB.CreateWebServer.html to create an Apache web server (PHP and MariaDB is not required).
-Upload the files in this repository to the /var/www/html folder on your EC2 instance and restart the Apache web server. When you go to the URL of your EC2 instance in any browser, you should see the home page of this project (index.html).
+Upload the frontend files (html files and files in ./imgs and ./styles directory only) in this repository to the /var/www/html folder on your EC2 instance and restart the Apache web server. When you go to the URL of your EC2 instance in any browser, you should see the home page of this project (index.html).
